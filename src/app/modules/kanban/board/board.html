@@ -4,11 +4,67 @@
         <app-board-team [team]="item" />
         }
     </app-board-container>
-    <app-board-container title="Tareas"></app-board-container>
-    <app-board-container title="En proceso"></app-board-container>
-    <app-board-container title="En revisión"></app-board-container>
-    <app-board-container title="Completadas"></app-board-container>
+
+    @for (board of boards; track board.id) {
+    <app-board-container [title]="board.title">
+        <div cdkDropList [id]="board.id" [cdkDropListData]="board.tasks" [cdkDropListConnectedTo]="getBoardIds()"
+            (cdkDropListDropped)="onTaskDrop($event, board.id)" class="flex-1 space-y-2">
+
+            @for (task of board.tasks; track task.id) {
+            <div cdkDrag
+                class="bg-gray-50 p-3 rounded border border-gray-200 cursor-move hover:shadow-md transition-shadow">
+                <div class="flex items-start justify-between mb-2">
+                    <h4 class="font-medium text-sm">{{ task.title }}</h4>
+                    <span class="text-xs px-2 py-1 rounded" [class.bg-red-100]="task.priority === 'high'"
+                        [class.text-red-700]="task.priority === 'high'"
+                        [class.bg-yellow-100]="task.priority === 'medium'"
+                        [class.text-yellow-700]="task.priority === 'medium'"
+                        [class.bg-green-100]="task.priority === 'low'" [class.text-green-700]="task.priority === 'low'">
+                        {{ task.priority }}
+                    </span>
+                </div>
+                <p class="text-xs text-gray-600 mb-2">{{ task.description }}</p>
+
+                @if (task.assignedTo && task.assignedTo.length > 0) {
+                <div class="flex items-center gap-1 mb-2">
+                    <fa-icon [icon]="getIcon('user')" class="text-gray-400 text-xs" />
+                    <div class="flex flex-wrap gap-1">
+                        @for (person of task.assignedTo; track person) {
+                        <span class="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">
+                            {{ person }}
+                        </span>
+                        }
+                    </div>
+                </div>
+                }
+
+                @if (task.dueDate) {
+                <div class="flex items-center gap-1 text-xs text-gray-500">
+                    <fa-icon [icon]="getIcon('calendar')" class="text-xs" />
+                    <span>{{ task.dueDate | date:'dd/MM/yyyy' }}</span>
+                </div>
+                }
+            </div>
+            }
+        </div>
+        <button (click)="openTaskModal(board.id)" class="border border-dashed text-gray-600 hover:text-gray-800 leading-none py-2"
+            title="Agregar tarea">
+            <fa-icon [icon]="getIcon('plus')" />
+        </button>
+    </app-board-container>
+    }
+
+    <button (click)="addNewBoard()"
+        class="min-w-80 h-32 bg-white/50 border-2 border-dashed border-gray-300 rounded-lg hover:bg-white hover:border-gray-400 transition-colors flex items-center justify-center text-gray-500 hover:text-gray-700">
+        <fa-icon [icon]="getIcon('plus')" />
+        <span class="ml-2">Agregar tablero</span>
+    </button>
+
     @if(isOpen) {
-        <app-search></app-search>
+    <app-search></app-search>
+    }
+
+    @if(showTaskModal) {
+    <app-task-modal [allTeamMembers]="allTeamMembers" (save)="onTaskSave($event)" (cancel)="closeTaskModal()" />
     }
 </div>

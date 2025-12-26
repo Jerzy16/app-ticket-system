@@ -1,0 +1,15 @@
+<div class="absolute inset-0 z-50 flex items-start justify-center pt-4">
+  <div class="bg-white p-6 rounded-lg shadow-xl w-[90%] max-w-md relative">
+    <input
+      type="text"
+      class="outline-none w-full border border-gray-300 rounded px-4 py-2"
+      placeholder="Buscar tareas, personas, etc."
+    />
+    <div>
+        <fa-icon
+            [icon]="getIcon('close')" class="text-gray-600 absolute top-1 right-1 cursor-pointer"
+            (click)="closeSearch()"
+        />
+    </div>
+  </div>
+</div>

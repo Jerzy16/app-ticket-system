@@ -1,0 +1,14 @@
+<div class="flex flex-nowrap gap-4 px-4 pt-4 pb-0 max-w-svw overflow-x-auto relative bg-red-50 h-[calc(100vh-3.5rem)]">
+    <app-board-container title="Equipo">
+        @for (item of team; track $index) {
+        <app-board-team [team]="item" />
+        }
+    </app-board-container>
+    <app-board-container title="Tareas"></app-board-container>
+    <app-board-container title="En proceso"></app-board-container>
+    <app-board-container title="En revisión"></app-board-container>
+    <app-board-container title="Completadas"></app-board-container>
+    @if(isOpen) {
+        <app-search></app-search>
+    }
+</div>

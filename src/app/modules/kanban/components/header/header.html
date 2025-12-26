@@ -1,0 +1,32 @@
+<header class="flex h-14 items-center justify-between px-4 border-b border-gray-500">
+    <div class="flex gap-4 items-center">
+        <app-logo />
+        <fa-icon
+            [icon]="getIcon('search')"
+            class="text-gray-600 ml-4 cursor-pointer"
+            (click)="openSearch()"
+        />
+    </div>
+    <div class="flex">
+        <button class="py-2 text-sm px-4 bg-gray-200 rounded-l-lg">
+            <fa-icon [icon]="getIcon('check')" class="text-gray-600" />
+            Tareas
+        </button>
+        <button class="py-2 text-sm px-4 bg-gray-200 border-l border-gray-300">
+            <fa-icon [icon]="getIcon('users-gear')" class="text-gray-600" />
+            Personal
+        </button>
+        <button class="py-2 text-sm px-4 bg-gray-200 border-l border-gray-300">
+            <fa-icon [icon]="getIcon('hammer')" class="text-gray-600" />
+            Herramientas
+        </button>
+        <button class="py-2 text-sm px-4 bg-gray-200 rounded-r-lg border-l border-gray-300">
+            <fa-icon [icon]="getIcon('chart-line')" class="text-gray-600" />
+            Reportes
+        </button>
+    </div>
+    <div class="flex items-center gap-2">
+        <fa-icon [icon]="getIcon('bell')" class="text-gray-600" />
+        <img src="/assets/img/perfil.webp" alt="" class="h-8 w-8 object-cover rounded-full">
+    </div>
+</header>

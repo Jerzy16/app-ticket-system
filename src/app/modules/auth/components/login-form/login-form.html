@@ -1,12 +1,21 @@
-<form action="" class="flex w-full flex-col gap-6">
+<form [formGroup]="loginForm" class="flex w-full flex-col gap-6" (ngSubmit)="onSubmit()">
     <div class="flex flex-col gap-2 w-full">
         <label for="email" class="font-semibold text-secondary">Correo</label>
-        <input type="text" id="email" class="outline-neutral-50 border border-secondary/30 py-2 px-4 w-full rounded">
+        <input type="text" id="email" class="outline-neutral-50 border border-secondary/30 py-2 px-4 w-full rounded"
+            formControlName="email">
+        <app-form-error [control]="email" [messages]="{
+            required: 'El correo es obligatorio',
+            email: 'Formato de correo inválido'
+        }" />
     </div>
     <div class="flex flex-col gap-2 w-full relative">
         <label for="password" class="font-semibold text-secondary">Contraseña</label>
         <input [type]="isOpenPassword ? 'text' : 'password'" id="password"
-            class="outline-neutral-50 border border-secondary/30 py-2 pl-4 pr-8 w-full rounded">
+            class="outline-neutral-50 border border-secondary/30 py-2 pl-4 pr-8 w-full rounded"
+            formControlName="password">
+        <app-form-error [control]="password" [messages]="{
+            required: 'La contraseña es obligatoria'
+        }" />
         <div class="absolute right-2 top-10.5">
             @if (isOpenPassword) {
             <fa-icon [icon]="getIcon('eye')" class="text-secondary cursor-pointer"
@@ -19,7 +28,7 @@
     </div>
     <div class="flex items-center justify-between mb-6">
         <div class="flex items-center justify-start gap-x-4">
-            <input type="checkbox" id="remember-me" class="w-4 h-4 outline-none border border-secondary/30 rounded" />
+            <input type="checkbox" id="remember-me" formControlName="rememberMe" class="w-4 h-4 outline-none border border-secondary/30 rounded" />
             <label for="remember-me" class="text-secondary text-sm">Recordarme</label>
         </div>
         <a href="" class="text-primary cursor-pointer hover:underline transition-all duration-500 text-sm">Olvidé mi

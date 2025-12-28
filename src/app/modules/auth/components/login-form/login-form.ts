@@ -4,10 +4,11 @@ import { IconService } from '../../../../shared/data-access/icon';
 import { AuthService } from '../../service/auth';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { FormError } from "../../../../shared/components/form-error/form-error";
+import { RouterLink } from "@angular/router";
 
 @Component({
     selector: 'app-login-form',
-    imports: [FontAwesomeModule, ReactiveFormsModule, FormError],
+    imports: [FontAwesomeModule, ReactiveFormsModule, FormError, RouterLink],
     templateUrl: './login-form.html',
     styleUrl: './login-form.css',
 })

@@ -1,6 +1,8 @@
 import { Injectable } from '@angular/core';
 import {
     faArrowDown,
+    faArrowLeft,
+    faArrowRight,
     faArrowUp,
     faBars,
     faBell,
@@ -9,15 +11,18 @@ import {
     faCheck,
     faChevronRight,
     faCircle,
+    faCircleCheck,
     faCircleNotch,
     faClose,
     faDotCircle,
     faEdit,
+    faEnvelope,
     faEye,
     faEyeSlash,
     faHammer,
     faHome,
     faList,
+    faLock,
     faMinus,
     faOutdent,
     faPlus,
@@ -61,7 +66,13 @@ export class IconService {
         user: faUser,
         'arrow-down': faArrowDown,
         'arrow-up': faArrowUp,
-        minus: faMinus
+        minus: faMinus,
+        'circle-notch': faCircleNotch,
+        envelope: faEnvelope,
+        'circle-check': faCircleCheck,
+        lock: faLock,
+        'arrow-right': faArrowRight,
+        'arrow-left': faArrowLeft
     };
 
     getIcon(name: string): IconDefinition {

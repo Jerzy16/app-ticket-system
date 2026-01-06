@@ -1,70 +1,119 @@
-<div class="flex flex-nowrap gap-4 px-4 pt-4 pb-0 max-w-svw overflow-x-auto relative bg-red-50 h-[calc(100vh-3.5rem)]">
+<div class="flex flex-nowrap gap-4 px-4 pt-4 pb-0 max-w-svw overflow-x-auto relative bg-gray-50 h-[calc(100vh-3.5rem)]">
     <app-board-container title="Equipo">
-        @for (item of team; track $index) {
-        <app-board-team [team]="item" />
+        @if (isLoadingTeam) {
+            <div class="flex justify-center items-center py-8">
+                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+            </div>
+        } @else {
+            @if (team.length > 0) {
+                @for (item of team; track item.role) {
+                    <app-board-team [team]="item" />
+                }
+            } @else {
+                <div class="text-center py-8 text-gray-500">
+                    <p class="text-sm">No hay miembros del equipo</p>
+                </div>
+            }
         }
     </app-board-container>
 
+    @if (isLoadingBoards) {
+        <div class="flex justify-center items-center py-16 min-w-80">
+            <div class="text-center">
+                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+                <p class="text-gray-600">Cargando tableros...</p>
+            </div>
+        </div>
+    }
     @for (board of boards; track board.id) {
-    <app-board-container [title]="board.title">
-        <div cdkDropList [id]="board.id" [cdkDropListData]="board.tasks" [cdkDropListConnectedTo]="getBoardIds()"
-            (cdkDropListDropped)="onTaskDrop($event, board.id)" class="flex-1 space-y-2">
-
-            @for (task of board.tasks; track task.id) {
-            <div cdkDrag
-                class="bg-gray-50 p-3 rounded border border-gray-200 cursor-move hover:shadow-md transition-shadow">
-                <div class="flex items-start justify-between mb-2">
-                    <h4 class="font-medium text-sm">{{ task.title }}</h4>
-                    <span class="text-xs px-2 py-1 rounded" [class.bg-red-100]="task.priority === 'high'"
-                        [class.text-red-700]="task.priority === 'high'"
-                        [class.bg-yellow-100]="task.priority === 'medium'"
-                        [class.text-yellow-700]="task.priority === 'medium'"
-                        [class.bg-green-100]="task.priority === 'low'" [class.text-green-700]="task.priority === 'low'">
-                        {{ task.priority }}
-                    </span>
-                </div>
-                <p class="text-xs text-gray-600 mb-2">{{ task.description }}</p>
-
-                @if (task.assignedTo && task.assignedTo.length > 0) {
-                <div class="flex items-center gap-1 mb-2">
-                    <fa-icon [icon]="getIcon('user')" class="text-gray-400 text-xs" />
-                    <div class="flex flex-wrap gap-1">
-                        @for (person of task.assignedTo; track person) {
-                        <span class="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">
-                            {{ person }}
-                        </span>
-                        }
+        <app-board-container [title]="board.title">
+            <div
+                cdkDropList
+                [id]="board.id"
+                [cdkDropListData]="board.tasks"
+                [cdkDropListConnectedTo]="getBoardIds()"
+                (cdkDropListDropped)="onTaskDrop($event, board.id)"
+                class="flex-1 space-y-2 min-h-25"
+            >
+                @if (board.tasks?.length === 0) {
+                    <div class="text-center py-8 text-gray-400 border-2 border-dashed border-gray-200 rounded-lg">
+                        <p class="text-sm">Arrastra tareas aquí</p>
                     </div>
-                </div>
                 }
-
-                @if (task.dueDate) {
-                <div class="flex items-center gap-1 text-xs text-gray-500">
-                    <fa-icon [icon]="getIcon('calendar')" class="text-xs" />
-                    <span>{{ task.dueDate | date:'dd/MM/yyyy' }}</span>
-                </div>
+                @for (task of board.tasks; track task.id) {
+                    <div
+                        cdkDrag
+                        class="bg-white p-3 rounded border border-gray-200 cursor-move hover:shadow-md transition-shadow"
+                    >
+                        <div class="flex items-start justify-between mb-2">
+                            <h4 class="font-medium text-sm">{{ task.title }}</h4>
+                            <span
+                                class="text-xs px-2 py-1 rounded"
+                                [class.bg-red-100]="task.priority === 'high'"
+                                [class.text-red-700]="task.priority === 'high'"
+                                [class.bg-yellow-100]="task.priority === 'medium'"
+                                [class.text-yellow-700]="task.priority === 'medium'"
+                                [class.bg-green-100]="task.priority === 'low'"
+                                [class.text-green-700]="task.priority === 'low'"
+                            >
+                                {{ task.priority }}
+                            </span>
+                        </div>
+                        <p class="text-xs text-gray-600 mb-2">{{ task.description }}</p>
+                        @if (task.assignedTo && task.assignedTo.length > 0) {
+                            <div class="flex items-center gap-1 mb-2">
+                                <fa-icon [icon]="getIcon('user')" class="text-gray-400 text-xs" />
+                                <div class="flex flex-wrap gap-1">
+                                    @for (person of task.assignedTo; track person) {
+                                        <span class="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">
+                                            {{ person }}
+                                        </span>
+                                    }
+                                </div>
+                            </div>
+                        }
+                        <div class="flex items-center gap-2 flex-wrap">
+                            @if (task.dueDate) {
+                                <div class="flex items-center gap-1 text-xs text-gray-500">
+                                    <fa-icon [icon]="getIcon('calendar')" class="text-xs" />
+                                    <span>{{ task.dueDate | date:'dd/MM/yyyy' }}</span>
+                                </div>
+                            }
+                            @if (task.latitude && task.longitude) {
+                                <div class="flex items-center gap-1 text-xs text-gray-500">
+                                    <fa-icon [icon]="getIcon('location')" class="text-xs" />
+                                    <span>{{ task.latitude | number:'1.4-4' }}, {{ task.longitude | number:'1.4-4' }}</span>
+                                </div>
+                            }
+                        </div>
+                    </div>
                 }
             </div>
-            }
-        </div>
-        <button (click)="openTaskModal(board.id)" class="border border-dashed text-gray-600 hover:text-gray-800 leading-none py-2"
-            title="Agregar tarea">
-            <fa-icon [icon]="getIcon('plus')" />
-        </button>
-    </app-board-container>
+            <button
+                (click)="openTaskModal(board.id)"
+                class="border border-dashed text-gray-600 hover:text-gray-800 leading-none py-2 rounded hover:bg-gray-50 transition-colors"
+                title="Agregar tarea"
+            >
+                <fa-icon [icon]="getIcon('plus')" />
+                <span class="ml-1 text-sm">Agregar tarea</span>
+            </button>
+        </app-board-container>
     }
-
-    <button (click)="addNewBoard()"
-        class="min-w-80 h-32 bg-white/50 border-2 border-dashed border-gray-300 rounded-lg hover:bg-white hover:border-gray-400 transition-colors flex items-center justify-center text-gray-500 hover:text-gray-700">
+    <button
+        (click)="addNewBoard()"
+        class="min-w-80 h-32 bg-white/50 border-2 border-dashed border-gray-300 rounded-lg hover:bg-white hover:border-gray-400 transition-colors flex items-center justify-center text-gray-500 hover:text-gray-700"
+    >
         <fa-icon [icon]="getIcon('plus')" />
         <span class="ml-2">Agregar tablero</span>
     </button>
-
     @if(isOpen) {
-    <app-search></app-search>
+        <app-search />
     }
-
     @if(showTaskModal) {
-    <app-task-modal [allTeamMembers]="allTeamMembers" (save)="onTaskSave($event)" (cancel)="closeTaskModal()" />
+        <app-task-modal
+            [allTeamMembers]="allTeamMembers"
+            (save)="onTaskSave($event)"
+            (cancel)="closeTaskModal()"
+        />
     }
 </div>

@@ -1,86 +1,99 @@
-import { Injectable } from '@angular/core';
-import { Board, Task } from '../board/board';
-import { BehaviorSubject } from 'rxjs';
+import { Board } from '../models/board.model';
+import { inject, Injectable } from '@angular/core';
+import { BehaviorSubject, Observable, tap, catchError } from 'rxjs';
+import { HttpClient } from '@angular/common/http';
+import { environment } from '../../../../environments/environment';
+import { ApiResponse } from '../../../shared/interfaces/api-response.interface';
+import { Task } from '../models/task.model';
 
 @Injectable({
     providedIn: 'root',
 })
-export class BoardService {
-      private boardsSubject = new BehaviorSubject<Board[]>([
-        {
-            id: 'tasks',
-            title: 'Tareas',
-            tasks: [
-                {
-                    id: '1',
-                    title: 'Configurar router principal',
-                    description: 'Actualizar firmware y configurar VLANs',
-                    assignedTo: ['Juan Pérez', 'Carlos Ramírez'],
-                    priority: 'high',
-                    createdAt: new Date('2024-12-20'),
-                    dueDate: new Date('2024-12-28')
-                },
-                {
-                    id: '2',
-                    title: 'Revisar cableado edificio B',
-                    description: 'Inspeccionar y documentar puntos de red',
-                    assignedTo: ['Miguel Torres'],
-                    priority: 'medium',
-                    createdAt: new Date('2024-12-21')
-                }
-            ]
-        },
-        {
-            id: 'in-progress',
-            title: 'En proceso',
-            tasks: [
-                {
-                    id: '3',
-                    title: 'Instalación de access points',
-                    description: 'Montar 5 APs en piso 3',
-                    assignedTo: ['Andrés Quispe', 'Juan Pérez'],
-                    priority: 'high',
-                    createdAt: new Date('2024-12-19'),
-                    dueDate: new Date('2024-12-26')
-                }
-            ]
-        },
-        {
-            id: 'review',
-            title: 'En revisión',
-            tasks: [
-                {
-                    id: '4',
-                    title: 'Documentar topología de red',
-                    description: 'Actualizar diagramas en Confluence',
-                    assignedTo: ['Luis Fernández'],
-                    priority: 'low',
-                    createdAt: new Date('2024-12-18')
-                }
-            ]
-        },
-        {
-            id: 'completed',
-            title: 'Completadas',
-            tasks: [
-                {
-                    id: '5',
-                    title: 'Backup de configuraciones',
-                    description: 'Respaldar config de todos los switches',
-                    assignedTo: ['Carlos Ramírez'],
-                    priority: 'medium',
-                    createdAt: new Date('2024-12-15')
-                }
-            ]
-        }
-    ]);
 
+export class BoardService {
+
+    private http = inject(HttpClient);
+    private url = environment.api_url;
+
+    private boardsSubject = new BehaviorSubject<Board[]>([]);
     boards$ = this.boardsSubject.asObservable();
 
+    constructor() {
+        // Cargar boards desde el backend al iniciar el servicio
+        this.loadBoardsFromBackend();
+    }
+
+    /**
+     * Carga los boards desde el backend
+     */
+    private loadBoardsFromBackend(): void {
+        this.getAll().subscribe({
+            next: (response) => {
+                const boards = response.data.map(board => ({
+                    ...board,
+                    tasks: board.tasks || []
+                }));
+                this.boardsSubject.next(boards);
+                console.log('Boards cargados desde el backend:', boards);
+            },
+            error: (error) => {
+                console.error('Error al cargar boards desde el backend:', error);
+                // Mantener boards vacíos si hay error
+                this.boardsSubject.next([]);
+            }
+        });
+    }
+
+    /**
+     * Obtiene todos los boards desde el backend
+     */
+    getAll(): Observable<ApiResponse<Board[]>> {
+        return this.http.get<ApiResponse<Board[]>>(`${this.url}/boards`);
+    }
+
+    /**
+     * Obtiene los boards actuales del estado local
+     */
     getBoards(): Board[] {
         return this.boardsSubject.value;
     }
 
+    /**
+     * Crea un nuevo board en el backend
+     */
+    createBoard(title: string): Observable<ApiResponse<Board>> {
+        const newBoard = {
+            title,
+            status: 'active'
+        };
+        return this.http.post<ApiResponse<Board>>(`${this.url}/boards`, newBoard).pipe(
+            tap(response => {
+                const board = { ...response.data, tasks: [] };
+                const currentBoards = this.boardsSubject.value;
+                this.boardsSubject.next([...currentBoards, board]);
+                console.log('Board creado:', board);
+            }),
+            catchError(error => {
+                console.error('Error al crear board:', error);
+                throw error;
+            })
+        );
+    }
+
+    /**
+     * Agrega un board (wrapper para mantener compatibilidad)
+     */
+    addBoard(title: string): void {
+        this.createBoard(title).subscribe({
+            next: () => console.log('Board agregado exitosamente'),
+            error: (error) => console.error('Error al agregar board:', error)
+        });
+    }
+
+    /**
+     * Agrega una nueva tarea a un board
+     * TODO: Implementar endpoint en el backend para crear tareas
+     */
     addTask(boardId: string, task: Omit<Task, 'id' | 'createdAt'>): void {
         const boards = this.boardsSubject.value;
         const boardIndex = boards.findIndex(b => b.id === boardId);
@@ -89,65 +102,165 @@ export class BoardService {
             const newTask: Task = {
                 ...task,
                 id: Date.now().toString(),
-                createdAt: new Date()
+                createdAt: new Date(),
+                boardId: boardId,
+                status: 'pending'
             };
 
-            boards[boardIndex].tasks.push(newTask);
-            this.boardsSubject.next([...boards]);
+            const updatedBoards = [...boards];
+            updatedBoards[boardIndex] = {
+                ...updatedBoards[boardIndex],
+                tasks: [...(updatedBoards[boardIndex].tasks || []), newTask]
+            };
+
+            this.boardsSubject.next(updatedBoards);
+
+            // TODO: Descomentar cuando tengas el endpoint en el backend
+            /*
+            this.http.post<ApiResponse<Task>>(`${this.url}/boards/${boardId}/tasks`, newTask)
+                .subscribe({
+                    next: (response) => console.log('Tarea creada en el backend:', response.data),
+                    error: (error) => console.error('Error al crear tarea:', error)
+                });
+            */
         }
     }
 
+    /**
+     * Mueve una tarea entre boards o dentro del mismo board
+     * TODO: Implementar endpoint en el backend para actualizar tareas
+     */
     moveTask(taskId: string, fromBoardId: string, toBoardId: string, toIndex: number): void {
         const boards = this.boardsSubject.value;
-        const fromBoard = boards.find(b => b.id === fromBoardId);
-        const toBoard = boards.find(b => b.id === toBoardId);
+        const fromBoardIndex = boards.findIndex(b => b.id === fromBoardId);
+        const toBoardIndex = boards.findIndex(b => b.id === toBoardId);
 
-        if (!fromBoard || !toBoard) return;
+        if (fromBoardIndex === -1 || toBoardIndex === -1) return;
 
-        const taskIndex = fromBoard.tasks.findIndex(t => t.id === taskId);
+        const updatedBoards = [...boards];
+        const fromTasks = [...(updatedBoards[fromBoardIndex].tasks || [])];
+        const toTasks = fromBoardId === toBoardId
+            ? fromTasks
+            : [...(updatedBoards[toBoardIndex].tasks || [])];
+
+        const taskIndex = fromTasks.findIndex(t => t.id === taskId);
         if (taskIndex === -1) return;
 
-        const [task] = fromBoard.tasks.splice(taskIndex, 1);
-        toBoard.tasks.splice(toIndex, 0, task);
+        const [task] = fromTasks.splice(taskIndex, 1);
+        task.boardId = toBoardId;
 
-        this.boardsSubject.next([...boards]);
+        if (fromBoardId === toBoardId) {
+            // Mover dentro del mismo board
+            fromTasks.splice(toIndex, 0, task);
+            updatedBoards[fromBoardIndex] = {
+                ...updatedBoards[fromBoardIndex],
+                tasks: fromTasks
+            };
+        } else {
+            // Mover entre boards diferentes
+            toTasks.splice(toIndex, 0, task);
+            updatedBoards[fromBoardIndex] = {
+                ...updatedBoards[fromBoardIndex],
+                tasks: fromTasks
+            };
+            updatedBoards[toBoardIndex] = {
+                ...updatedBoards[toBoardIndex],
+                tasks: toTasks
+            };
+        }
+
+        this.boardsSubject.next(updatedBoards);
+
+        // TODO: Descomentar cuando tengas el endpoint en el backend
+        /*
+        this.http.patch<ApiResponse<Task>>(`${this.url}/boards/tasks/${taskId}`, {
+            boardId: toBoardId,
+            position: toIndex
+        }).subscribe({
+            next: (response) => console.log('Tarea movida en el backend:', response.data),
+            error: (error) => console.error('Error al mover tarea:', error)
+        });
+        */
     }
 
-    addBoard(title: string): void {
-        const boards = this.boardsSubject.value;
-        const newBoard: Board = {
-            id: `board-${Date.now()}`,
-            title,
-            tasks: []
-        };
-        this.boardsSubject.next([...boards, newBoard]);
-    }
-
-    deleteBoard(boardId: string): void {
-        const boards = this.boardsSubject.value.filter(b => b.id !== boardId);
-        this.boardsSubject.next(boards);
-    }
-
+    /**
+     * Actualiza una tarea específica
+     * TODO: Implementar endpoint en el backend
+     */
     updateTask(boardId: string, taskId: string, updates: Partial<Task>): void {
         const boards = this.boardsSubject.value;
         const board = boards.find(b => b.id === boardId);
 
         if (board) {
-            const task = board.tasks.find(t => t.id === taskId);
-            if (task) {
-                Object.assign(task, updates);
+            const taskIndex = board.tasks?.findIndex(t => t.id === taskId);
+            if (taskIndex !== undefined && taskIndex !== -1 && board.tasks) {
+                board.tasks[taskIndex] = {
+                    ...board.tasks[taskIndex],
+                    ...updates
+                };
                 this.boardsSubject.next([...boards]);
+
+                // TODO: Descomentar cuando tengas el endpoint en el backend
+                /*
+                this.http.patch<ApiResponse<Task>>(`${this.url}/boards/tasks/${taskId}`, updates)
+                    .subscribe({
+                        next: (response) => console.log('Tarea actualizada en el backend:', response.data),
+                        error: (error) => console.error('Error al actualizar tarea:', error)
+                    });
+                */
             }
         }
     }
 
+    /**
+     * Elimina una tarea de un board
+     * TODO: Implementar endpoint en el backend
+     */
     deleteTask(boardId: string, taskId: string): void {
         const boards = this.boardsSubject.value;
         const board = boards.find(b => b.id === boardId);
 
-        if (board) {
+        if (board && board.tasks) {
             board.tasks = board.tasks.filter(t => t.id !== taskId);
             this.boardsSubject.next([...boards]);
+
+            // TODO: Descomentar cuando tengas el endpoint en el backend
+            /*
+            this.http.delete<ApiResponse<void>>(`${this.url}/boards/tasks/${taskId}`)
+                .subscribe({
+                    next: () => console.log('Tarea eliminada del backend'),
+                    error: (error) => console.error('Error al eliminar tarea:', error)
+                });
+            */
         }
+    }
+
+    /**
+     * Elimina un board
+     * TODO: Implementar endpoint en el backend
+     */
+    deleteBoard(boardId: string): void {
+        const boards = this.boardsSubject.value.filter(b => b.id !== boardId);
+        this.boardsSubject.next(boards);
+
+        // TODO: Descomentar cuando tengas el endpoint en el backend
+        /*
+        this.http.delete<ApiResponse<void>>(`${this.url}/boards/${boardId}`)
+            .subscribe({
+                next: () => console.log('Board eliminado del backend'),
+                error: (error) => {
+                    console.error('Error al eliminar board:', error);
+                    // Revertir el cambio si hay error
+                    this.loadBoardsFromBackend();
+                }
+            });
+        */
+    }
+
+    /**
+     * Refresca los boards desde el backend
+     */
+    refreshBoards(): void {
+        this.loadBoardsFromBackend();
     }
 }

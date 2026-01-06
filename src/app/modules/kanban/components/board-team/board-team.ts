@@ -1,18 +1,29 @@
 import { Component, Input } from '@angular/core';
+import { CommonModule } from '@angular/common';
+
+export interface TeamMemberDisplay {
+  id?: string;
+  name: string;
+  post: string;
+  photo: string;
+}
+
+export interface TeamGroupDisplay {
+  role: string;
+  members: TeamMemberDisplay[];
+}
 
 @Component({
   selector: 'app-board-team',
-  imports: [],
+  standalone: true,
+  imports: [CommonModule],
   templateUrl: './board-team.html',
-  styleUrl: './board-team.css',
+  styleUrls: ['./board-team.css']
 })
 export class BoardTeamComponent {
-     @Input() team!: {
-    role: string;
-    members: {
-      name: string;
-      post: string;
-      photo: string;
-    }[];
-  };
+  @Input() team!: TeamGroupDisplay;
+
+  getDefaultPhoto(name: string): string {
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`;
+  }
 }

@@ -14,6 +14,7 @@ export interface LoginData {
 export class AuthService {
 
     private readonly TOKEN_KEY = 'auth_token';
+    private readonly USER_KEY = 'auth_user';
     private http = inject(HttpClient);
     private apiUrl = environment.api_url;
 
@@ -49,6 +50,12 @@ export class AuthService {
     logout(): void {
         this.removeToken();
     }
+
+    getUser(): any {
+        const user = localStorage.getItem(this.USER_KEY);
+        return user ? JSON.parse(user) : null;
+    }
+
 
     isAuthenticated(): boolean {
         return !!this.getToken();

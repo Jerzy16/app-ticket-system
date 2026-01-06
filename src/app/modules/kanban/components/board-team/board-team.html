@@ -1,21 +1,20 @@
 <div class="bg-white rounded-xl shadow p-4 w-64">
-  <h3 class="font-semibold mb-4 border-b pb-2">
-    {{ team.role }}
-  </h3>
-  <div class="space-y-3">
-    @for (member of team.members; track $index) {
-      <div class="flex items-center gap-3">
-        <img
-          [src]="member.photo"
-          class="w-10 h-10 rounded-full object-contain"
-        />
+    <h3 class="font-semibold mb-4 border-b pb-2">
+        {{ team.role }}
+    </h3>
+    <div class="space-y-3">
+        @for (member of team.members; track $index) {
+        <div class="flex items-center gap-3">
+            <img [src]="member.photo || getDefaultPhoto(member.name)" [alt]="member.name"
+                class="w-10 h-10 rounded-full object-contain"
+                (error)="$any($event.target).src = getDefaultPhoto(member.name)" />
 
-        <div>
-          <p class="text-sm font-medium">{{ member.name }}</p>
-          <p class="text-xs text-gray-500">{{ member.post }}</p>
+            <div>
+                <p class="text-sm font-medium capitalize">{{ member.name }}</p>
+                <p class="text-xs text-gray-500">{{ member.post }}</p>
+            </div>
         </div>
-      </div>
-    }
-  </div>
+        }
+    </div>
 
 </div>

@@ -9,6 +9,7 @@ import {
     faCalendar,
     faChartLine,
     faCheck,
+    faChevronDown,
     faChevronRight,
     faCircle,
     faCircleCheck,
@@ -19,18 +20,23 @@ import {
     faEnvelope,
     faEye,
     faEyeSlash,
+    faGear,
     faHammer,
     faHome,
+    faLayerGroup,
     faList,
     faLock,
     faMinus,
     faOutdent,
     faPlus,
+    faQuestionCircle,
     faSave,
     faSearch,
+    faSignOutAlt,
     faStar,
     faTrash,
     faUser,
+    faUsers,
     faUsersGear,
     IconDefinition,
 } from '@fortawesome/free-solid-svg-icons';
@@ -72,7 +78,13 @@ export class IconService {
         'circle-check': faCircleCheck,
         lock: faLock,
         'arrow-right': faArrowRight,
-        'arrow-left': faArrowLeft
+        'arrow-left': faArrowLeft,
+        'chevron-down': faChevronDown,
+        gear: faGear,
+        'question-circle': faQuestionCircle,
+        'sign-out-alt': faSignOutAlt,
+        'layer-group': faLayerGroup,
+        'users': faUsers
     };
 
     getIcon(name: string): IconDefinition {

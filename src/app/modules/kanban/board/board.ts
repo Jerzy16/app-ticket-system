@@ -1,46 +1,49 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy } from '@angular/core';
 import { BoardContainerComponent } from "../components/board-container/board-container";
 import { BoardTeamComponent } from "../components/board-team/board-team";
 import { SearchService } from '../services/search';
 import { Subscription } from 'rxjs';
 import { SearchComponent } from "../components/search/search";
 import { BoardService } from '../services/board';
-import { CdkDragDrop, DragDropModule, moveItemInArray, transferArrayItem } from '@angular/cdk/drag-drop';
+import { TeamService, TeamGroup } from '../services/team';
+import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop';
 import { CommonModule } from '@angular/common';
 import { IconService } from '../../../shared/data-access/icon';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
-import { TeamMember, TaskModalComponent, TaskFormData } from '../components/task-modal/task-modal';
+import { TeamMember, TaskModalComponent } from '../components/task-modal/task-modal';
+import { Board } from '../models/board.model';
+import { Task } from '../models/task.model';
 
-export interface Task {
-  id: string;
-  title: string;
-  description: string;
-  assignedTo?: string[];
-  priority: 'low' | 'medium' | 'high';
-  createdAt: Date;
-  dueDate?: Date;
-}
-
-export interface Board {
-  id: string;
-  title: string;
-  tasks: Task[];
-}
 @Component({
     selector: 'app-board',
-    imports: [BoardContainerComponent, BoardTeamComponent, SearchComponent, CommonModule, DragDropModule, FontAwesomeModule, TaskModalComponent],
+    standalone: true,
+    imports: [
+        BoardContainerComponent,
+        BoardTeamComponent,
+        SearchComponent,
+        CommonModule,
+        DragDropModule,
+        FontAwesomeModule,
+        TaskModalComponent
+    ],
     templateUrl: './board.html',
     styleUrl: './board.css',
 })
-export class BoardComponent {
+export class BoardComponent implements OnInit, OnDestroy {
 
     private searchService = inject(SearchService);
     private boardService = inject(BoardService);
+    private teamService = inject(TeamService);
     private iconService = inject(IconService);
 
     isOpen = false;
     boards: Board[] = [];
+    team: TeamGroup[] = [];
+    isLoadingTeam = false;
+    isLoadingBoards = false;
+
     private sub!: Subscription;
+    private boardsSub!: Subscription;
 
     showTaskModal = false;
     currentBoardId: string | null = null;
@@ -51,23 +54,57 @@ export class BoardComponent {
                 this.isOpen = value;
             });
 
-        this.boardService.boards$.subscribe(boards => {
-            this.boards = boards;
+        // Suscribirse al observable de boards
+        this.isLoadingBoards = true;
+        this.boardsSub = this.boardService.boards$.subscribe({
+            next: (boards) => {
+                this.boards = boards;
+                this.isLoadingBoards = false;
+                console.log('Boards actualizados:', boards);
+            },
+            error: (error) => {
+                console.error('Error en la suscripción de boards:', error);
+                this.isLoadingBoards = false;
+            }
+        });
+
+        // Cargar el equipo desde el backend
+        this.loadTeam();
+    }
+
+    loadTeam() {
+        this.isLoadingTeam = true;
+        this.teamService.getTeam().subscribe({
+            next: (data) => {
+                this.team = Array.isArray(data) ? data : [];
+                this.isLoadingTeam = false;
+                console.log('Equipo cargado:', this.team);
+            },
+            error: (error) => {
+                console.error('Error al cargar el equipo:', error);
+                this.team = [];
+                this.isLoadingTeam = false;
+            }
         });
     }
 
     ngOnDestroy() {
         this.sub.unsubscribe();
+        if (this.boardsSub) {
+            this.boardsSub.unsubscribe();
+        }
     }
 
     getBoardIds(): string[] {
-        return this.boards.map(b => b.id);
+        return this.boards.map(b => b.id).filter((id): id is string => id !== undefined);
     }
 
     onTaskDrop(event: CdkDragDrop<any[]>, boardId: string) {
         if (event.previousContainer === event.container) {
+            // Mover dentro del mismo tablero
             moveItemInArray(event.container.data, event.previousIndex, event.currentIndex);
         } else {
+            // Mover entre tableros
             const taskId = event.previousContainer.data[event.previousIndex].id;
             const fromBoardId = event.previousContainer.id;
 
@@ -77,8 +114,8 @@ export class BoardComponent {
 
     addNewBoard() {
         const title = prompt('Nombre del nuevo tablero:');
-        if (title) {
-            this.boardService.addBoard(title);
+        if (title && title.trim()) {
+            this.boardService.addBoard(title.trim());
         }
     }
 
@@ -92,53 +129,30 @@ export class BoardComponent {
         this.currentBoardId = null;
     }
 
-    onTaskSave(formData: TaskFormData) {
+    onTaskSave(formData: Task) {
         if (this.currentBoardId) {
             this.boardService.addTask(this.currentBoardId, {
                 title: formData.title,
                 description: formData.description,
                 priority: formData.priority,
                 assignedTo: formData.assignedTo,
-                dueDate: formData.dueDate
+                dueDate: formData.dueDate,
+                latitude: formData.latitude,
+                longitude: formData.longitude
             });
         }
         this.closeTaskModal();
     }
 
-    defaultPhoto = 'https://imgs.search.brave.com/75A903UnLFvlStBzg-vTQmYHhoX69XxQHut4A5GthlU/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9pLnBp/bmltZy5jb20vb3Jp/Z2luYWxzL2I2L2Zh/LzRkL2I2ZmE0ZDk1/ZWUxYzIzYjAyNzcx/NzhkYzMxODkzZDgw/LmpwZw';
-
-    team = [
-        {
-            role: 'Jefe de Redes',
-            members: [
-                { name: 'Carlos Ramírez', post: 'Jefe de Redes', photo: this.defaultPhoto }
-            ]
-        },
-        {
-            role: 'Coordinador',
-            members: [
-                { name: 'Luis Fernández', post: 'Coordinador de Operaciones', photo: this.defaultPhoto }
-            ]
-        },
-        {
-            role: 'Técnicos',
-            members: [
-                { name: 'Juan Pérez', post: 'Técnico de Campo', photo: this.defaultPhoto },
-                { name: 'Miguel Torres', post: 'Técnico de Instalaciones', photo: this.defaultPhoto },
-                { name: 'Andrés Quispe', post: 'Técnico de Mantenimiento', photo: this.defaultPhoto }
-            ]
-        },
-        {
-            role: 'Soporte / NOC',
-            members: [
-                { name: 'Ana López', post: 'Soporte Técnico', photo: this.defaultPhoto },
-                { name: 'María Salazar', post: 'Operadora NOC', photo: this.defaultPhoto }
-            ]
-        }
-    ];
-
     get allTeamMembers(): TeamMember[] {
-        return this.team.flatMap(group => group.members);
+        return this.team.flatMap(group =>
+            group.members.map(member => ({
+                id: member.id,
+                name: member.name,
+                post: member.post,
+                photo: member.photo
+            }))
+        );
     }
 
     getIcon(icon: string) {

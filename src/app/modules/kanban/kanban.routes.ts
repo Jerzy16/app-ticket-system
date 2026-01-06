@@ -8,6 +8,10 @@ export default [
             {
                 path: '',
                 loadComponent: () => import('./board/board').then(m => m.BoardComponent),
+            },
+            {
+                path: 'staff',
+                loadComponent: () => import('./staff/staff').then(m => m.StaffComponent)
             }
         ]
     }

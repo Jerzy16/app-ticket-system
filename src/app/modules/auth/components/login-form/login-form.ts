@@ -53,7 +53,8 @@ export class LoginFormComponent {
                 this.router.navigate(['/kanban']);
             },
             error: (err) => {
-                toast.error(err.error.message);
+                console.log(err)
+                toast.error(err.message);
             }
         });
     }

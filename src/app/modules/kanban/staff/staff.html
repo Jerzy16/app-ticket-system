@@ -1,0 +1,288 @@
+<div class="h-[calc(100vh-3.5rem)] bg-gray-50 overflow-auto">
+    <div class="max-w-7xl mx-auto p-6">
+        <div class="mb-6">
+            <div class="flex justify-between items-center mb-4">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-800">Gestión de Personal</h1>
+                    <p class="text-gray-600 mt-1">Administra tu equipo de trabajo</p>
+                </div>
+                <button
+                    (click)="openAddModal()"
+                    class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg flex items-center gap-2 transition-colors shadow-md"
+                >
+                    <fa-icon [icon]="getIcon('plus')" />
+                    Agregar Personal
+                </button>
+            </div>
+            <div class="bg-white rounded-lg shadow-sm p-4 flex items-center justify-between">
+                <div class="flex-1 max-w-md">
+                    <div class="relative">
+                        <fa-icon
+                            [icon]="getIcon('search')"
+                            class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                        />
+                        <input
+                            type="text"
+                            [value]="searchTerm"
+                            (input)="onSearch($event)"
+                            placeholder="Buscar por nombre o cargo..."
+                            class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                    </div>
+                </div>
+                <div class="flex items-center gap-6 text-sm">
+                    <div class="flex items-center gap-2">
+                        <fa-icon [icon]="getIcon('users')" class="text-blue-500" />
+                        <span class="text-gray-600">Total:</span>
+                        <span class="font-semibold text-gray-800">{{ getMemberCount() }}</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <fa-icon [icon]="getIcon('layer-group')" class="text-green-500" />
+                        <span class="text-gray-600">Departamentos:</span>
+                        <span class="font-semibold text-gray-800">{{ teamGroups.length || 0 }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        @if (isLoading) {
+            <div class="flex justify-center items-center py-20">
+                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+            </div>
+        }
+        @if (!isLoading) {
+            <div class="space-y-6">
+                @for (group of filteredGroups; track group.role) {
+                    <div class="bg-white rounded-lg shadow-sm overflow-hidden">
+                        <div class="bg-linear-to-r from-blue-500 to-blue-600 px-6 py-4">
+                            <div class="flex items-center justify-between">
+                                <h2 class="text-xl font-semibold text-white flex items-center gap-2">
+                                    <fa-icon [icon]="getIcon('users-gear')" />
+                                    {{ group.role }}
+                                </h2>
+                                <span class="bg-white/20 text-white px-3 py-1 rounded-full text-sm font-medium">
+                                    {{ group.members.length }} miembro{{ group.members.length !== 1 ? 's' : '' }}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="p-6">
+                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                @for (member of group.members; track member.id) {
+                                    <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                                        <div class="flex items-start gap-4">
+                                            <img
+                                                [src]="member.photo"
+                                                [alt]="member.name"
+                                                class="w-16 h-16 rounded-full object-cover border-2 border-gray-200"
+                                            />
+                                            <div class="flex-1 min-w-0">
+                                                <h3 class="font-semibold text-gray-800 truncate">{{ member.name }}</h3>
+                                                <p class="text-sm text-gray-600 truncate">{{ member.post }}</p>
+                                                <div class="flex gap-2 mt-3">
+                                                    <button
+                                                        (click)="openEditModal(member)"
+                                                        class="text-blue-500 hover:text-blue-700 text-sm flex items-center gap-1"
+                                                    >
+                                                        <fa-icon [icon]="getIcon('edit')" />
+                                                        Editar
+                                                    </button>
+                                                    <button
+                                                        (click)="deleteMember(member)"
+                                                        class="text-red-500 hover:text-red-700 text-sm flex items-center gap-1"
+                                                    >
+                                                        <fa-icon [icon]="getIcon('delete')" />
+                                                        Eliminar
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                }
+                @if (filteredGroups.length === 0) {
+                    <div class="text-center py-20">
+                        <fa-icon [icon]="getIcon('users')" class="text-gray-300 text-6xl mb-4" />
+                        <h3 class="text-xl font-semibold text-gray-600 mb-2">No se encontraron resultados</h3>
+                        <p class="text-gray-500">Intenta con otro término de búsqueda</p>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+</div>
+@if (showModal) {
+    <div
+        class="fixed inset-0 bg-black/50 flex items-center justify-end z-50"
+        (click)="closeModal()"
+    >
+        <div
+            class="bg-white max-w-2xl w-full h-svh overflow-y-auto"
+            (click)="$event.stopPropagation()"
+        >
+            <div class="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center">
+                <h2 class="text-2xl font-bold text-gray-800">
+                    {{ isEditMode ? 'Editar Personal' : 'Agregar Personal' }}
+                </h2>
+                <button
+                    (click)="closeModal()"
+                    class="text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+                >
+                    <fa-icon [icon]="getIcon('close')" class="text-xl" />
+                </button>
+            </div>
+            <form [formGroup]="userForm" (ngSubmit)="onSubmit()" class="p-6">
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                            Usuario *
+                        </label>
+                        <input
+                            type="text"
+                            formControlName="username"
+                            class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            [class.border-red-500]="isFieldInvalid('username')"
+                            [class.border-gray-300]="!isFieldInvalid('username')"
+                            placeholder="nombre.usuario"
+                        />
+                        @if (isFieldInvalid('username')) {
+                            <p class="text-red-500 text-xs mt-1">{{ getErrorMessage('username') }}</p>
+                        }
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                                Nombre *
+                            </label>
+                            <input
+                                type="text"
+                                formControlName="name"
+                                class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                [class.border-red-500]="isFieldInvalid('name')"
+                                [class.border-gray-300]="!isFieldInvalid('name')"
+                                placeholder="Juan"
+                            />
+                            @if (isFieldInvalid('name')) {
+                                <p class="text-red-500 text-xs mt-1">{{ getErrorMessage('name') }}</p>
+                            }
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                                Apellido *
+                            </label>
+                            <input
+                                type="text"
+                                formControlName="lastname"
+                                class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                [class.border-red-500]="isFieldInvalid('lastname')"
+                                [class.border-gray-300]="!isFieldInvalid('lastname')"
+                                placeholder="Pérez"
+                            />
+                            @if (isFieldInvalid('lastname')) {
+                                <p class="text-red-500 text-xs mt-1">{{ getErrorMessage('lastname') }}</p>
+                            }
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                            Email *
+                        </label>
+                        <input
+                            type="email"
+                            formControlName="email"
+                            class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            [class.border-red-500]="isFieldInvalid('email')"
+                            [class.border-gray-300]="!isFieldInvalid('email')"
+                            placeholder="correo@empresa.com"
+                        />
+                        @if (isFieldInvalid('email')) {
+                            <p class="text-red-500 text-xs mt-1">{{ getErrorMessage('email') }}</p>
+                        }
+                    </div>
+                    @if (!isEditMode) {
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                                Contraseña *
+                            </label>
+                            <input
+                                type="password"
+                                formControlName="password"
+                                class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                [class.border-red-500]="isFieldInvalid('password')"
+                                [class.border-gray-300]="!isFieldInvalid('password')"
+                                placeholder="********"
+                            />
+                            @if (isFieldInvalid('password')) {
+                                <p class="text-red-500 text-xs mt-1">{{ getErrorMessage('password') }}</p>
+                            }
+                        </div>
+                    }
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                            Cargo *
+                        </label>
+                        <select
+                            formControlName="position"
+                            class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            [class.border-red-500]="isFieldInvalid('position')"
+                            [class.border-gray-300]="!isFieldInvalid('position')"
+                        >
+                            <option value="">Selecciona un cargo</option>
+                            @for (pos of positions; track pos) {
+                                <option [value]="pos">{{ pos }}</option>
+                            }
+                        </select>
+                        @if (isFieldInvalid('position')) {
+                            <p class="text-red-500 text-xs mt-1">{{ getErrorMessage('position') }}</p>
+                        }
+                    </div>
+                    <div formGroupName="roles">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Roles *
+                        </label>
+                        <div class="flex gap-4">
+                            @for (role of availableRoles; track role) {
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        [formControlName]="role"
+                                        class="w-4 h-4 text-blue-500 border-gray-300 rounded focus:ring-blue-500"
+                                    />
+                                    <span class="text-sm text-gray-700">{{ role }}</span>
+                                </label>
+                            }
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                            URL de Foto (opcional)
+                        </label>
+                        <input
+                            type="url"
+                            formControlName="photo"
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            placeholder="https://ejemplo.com/foto.jpg"
+                        />
+                    </div>
+                </div>
+                <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-200">
+                    <button
+                        type="button"
+                        (click)="closeModal()"
+                        class="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                    >
+                        Cancelar
+                    </button>
+                    <button
+                        type="submit"
+                        [disabled]="userForm.invalid"
+                        class="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+                    >
+                        {{ isEditMode ? 'Actualizar' : 'Guardar' }}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+}

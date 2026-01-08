@@ -11,3 +11,15 @@ export interface Task {
     boardId?: string;
     status?: string;
 }
+
+export interface TaskCreateDto {
+    id?: string;
+    title: string;
+    description: string;
+    priority: string;
+    boardId: string;
+    assignedTo: string[];
+    dueDate: string | null;
+    latitude: number | null;
+    longitude: number | null;
+}

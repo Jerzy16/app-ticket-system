@@ -23,8 +23,10 @@ import {
     faGear,
     faHammer,
     faHome,
+    faInfo,
     faLayerGroup,
     faList,
+    faLocation,
     faLock,
     faMinus,
     faOutdent,
@@ -84,7 +86,9 @@ export class IconService {
         'question-circle': faQuestionCircle,
         'sign-out-alt': faSignOutAlt,
         'layer-group': faLayerGroup,
-        'users': faUsers
+        'users': faUsers,
+        location: faLocation,
+        info: faInfo
     };
 
     getIcon(name: string): IconDefinition {

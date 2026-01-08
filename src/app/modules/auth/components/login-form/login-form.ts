@@ -48,13 +48,28 @@ export class LoginFormComponent {
         const { email, password, rememberMe } = this.loginForm.value;
 
         this.authService.login(email, password, rememberMe).subscribe({
-            next: (response) => {
-                toast.success(response.message);
+            next: () => {
+                // Ahora login() ya llamó a fetchUser() automáticamente
+                toast.success('¡Inicio de sesión exitoso!');
                 this.router.navigate(['/kanban']);
             },
             error: (err) => {
-                console.log(err)
-                toast.error(err.message);
+                console.log('Error en login:', err);
+
+                // Manejar diferentes tipos de errores
+                let errorMessage = 'Error en el inicio de sesión';
+
+                if (err.status === 401) {
+                    errorMessage = 'Credenciales incorrectas';
+                } else if (err.status === 0) {
+                    errorMessage = 'No se pudo conectar con el servidor';
+                } else if (err.error?.message) {
+                    errorMessage = err.error.message;
+                } else if (err.message) {
+                    errorMessage = err.message;
+                }
+
+                toast.error(errorMessage);
             }
         });
     }

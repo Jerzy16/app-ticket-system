@@ -1,9 +1,7 @@
-/* Estilos personalizados para el modal de tareas */
 #taskMap {
     z-index: 0;
 }
 
-/* Asegurar que los controles de Leaflet sean visibles */
 :host ::ng-deep .leaflet-control-zoom {
     border: 2px solid rgba(0,0,0,0.2);
     border-radius: 4px;
@@ -18,18 +16,15 @@
     background-color: #f4f4f4;
 }
 
-/* Asegurar que el popup del marcador se vea bien */
 :host ::ng-deep .leaflet-popup-content-wrapper {
     border-radius: 8px;
 }
 
-/* Mejorar la apariencia del input de coordenadas */
 input[type="number"]::-webkit-inner-spin-button,
 input[type="number"]::-webkit-outer-spin-button {
     opacity: 1;
 }
 
-/* Animación para el marcador */
 :host ::ng-deep .leaflet-marker-icon {
     transition: all 0.3s ease;
 }

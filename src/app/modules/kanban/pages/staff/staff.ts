@@ -2,9 +2,9 @@ import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
-import { IconService } from '../../../shared/data-access/icon';
-import { TeamService, TeamGroup, TeamMember } from '../services/team';
+import { IconService } from '../../../../shared/data-access/icon';
 import { toast } from 'ngx-sonner';
+import { TeamGroup, TeamMember, TeamService } from '../../core/services/team';
 
 @Component({
     selector: 'app-staff',

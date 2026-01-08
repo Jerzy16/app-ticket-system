@@ -1,7 +1,7 @@
 import { Component, inject } from '@angular/core';
-import { SearchService } from '../../services/search';
-import { IconService } from '../../../../shared/data-access/icon';
+import { IconService } from '../../../../../shared/data-access/icon';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
+import { SearchService } from '../../services/search';
 
 @Component({
   selector: 'app-search',

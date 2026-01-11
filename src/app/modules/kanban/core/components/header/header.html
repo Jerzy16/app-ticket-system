@@ -32,7 +32,6 @@
     </div>
 
     <div class="flex items-center gap-4">
-        <!-- NOTIFICACIONES -->
         <div class="relative notifications-container">
             <button (click)="toggleNotifications()"
                 class="relative hover:text-secondary transition-colors focus:outline-none">
@@ -44,11 +43,8 @@
                     </span>
                 }
             </button>
-
-            <!-- Panel de Notificaciones -->
             @if (showNotifications) {
-                <div class="absolute right-0 mt-2 w-96 bg-white rounded-lg shadow-lg border border-gray-200 z-50 animate-fadeIn max-h-[32rem] flex flex-col">
-                    <!-- Header del panel -->
+                <div class="absolute right-0 mt-2 w-96 bg-white rounded-lg shadow-lg border border-gray-200 z-50 animate-fadeIn max-h-128 flex flex-col">
                     <div class="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
                         <h3 class="text-sm font-semibold text-gray-800">
                             Notificaciones
@@ -60,8 +56,6 @@
                             </button>
                         }
                     </div>
-
-                    <!-- Lista de notificaciones -->
                     <div class="overflow-y-auto flex-1">
                         @if (notifications.length === 0) {
                             <div class="px-4 py-8 text-center text-gray-500">
@@ -77,7 +71,7 @@
                                     <div class="flex items-start gap-3">
                                         <div [class.text-blue-500]="!notification.read"
                                             [class.text-gray-400]="notification.read"
-                                            class="flex-shrink-0 mt-1">
+                                            class="shrink-0 mt-1">
                                             <fa-icon [icon]="getIcon(getNotificationIcon(notification.type))"
                                                 class="text-lg" />
                                         </div>
@@ -91,7 +85,7 @@
                                                 </p>
                                                 @if (!notification.read) {
                                                     <button (click)="markAsRead(notification, $event)"
-                                                        class="flex-shrink-0 text-blue-600 hover:text-blue-800"
+                                                        class="shrink-0 text-blue-600 hover:text-blue-800"
                                                         title="Marcar como leída">
                                                         <fa-icon [icon]="getIcon('check')" class="text-xs" />
                                                     </button>
@@ -135,8 +129,6 @@
                 class="flex items-center gap-2 hover:opacity-80 transition-opacity focus:outline-none">
                 <img [src]="currentUser?.photo || '/assets/img/perfil.webp'" alt="Perfil"
                     class="h-8 w-8 object-cover rounded-full border-2 border-gray-300" />
-                <fa-icon [icon]="getIcon('chevron-down')" class="text-gray-600 text-sm transition-transform"
-                    [class.rotate-180]="showDropdown" />
             </button>
             @if (showDropdown) {
                 <div class="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50 animate-fadeIn">
@@ -153,19 +145,11 @@
                         <fa-icon [icon]="getIcon('user')" class="text-gray-500" />
                         Mi Perfil
                     </button>
-
-                    <button
-                        class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-3 transition-colors">
-                        <fa-icon [icon]="getIcon('gear')" class="text-gray-500" />
-                        Configuración
-                    </button>
-
                     <button
                         class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-3 transition-colors">
                         <fa-icon [icon]="getIcon('question-circle')" class="text-gray-500" />
                         Ayuda
                     </button>
-
                     <div class="border-t border-gray-200 mt-2 pt-2">
                         <button (click)="logout()"
                             class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-3 transition-colors">

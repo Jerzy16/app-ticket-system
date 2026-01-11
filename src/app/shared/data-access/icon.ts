@@ -24,6 +24,7 @@ import {
     faHammer,
     faHome,
     faInfo,
+    faKey,
     faLayerGroup,
     faList,
     faLocation,
@@ -37,6 +38,7 @@ import {
     faSignOutAlt,
     faStar,
     faTrash,
+    faUpload,
     faUser,
     faUsers,
     faUsersGear,
@@ -88,7 +90,9 @@ export class IconService {
         'layer-group': faLayerGroup,
         'users': faUsers,
         location: faLocation,
-        info: faInfo
+        info: faInfo,
+        upload: faUpload,
+        key: faKey
     };
 
     getIcon(name: string): IconDefinition {

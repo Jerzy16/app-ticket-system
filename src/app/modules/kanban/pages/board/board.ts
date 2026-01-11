@@ -1,7 +1,7 @@
 import { Component, inject, OnInit, OnDestroy } from '@angular/core';
 import { BoardContainerComponent } from "../../core/components/board-container/board-container";
 import { BoardTeamComponent } from "../../core/components/board-team/board-team";
-import { BehaviorSubject, catchError, Subscription, tap } from 'rxjs';
+import { Subscription } from 'rxjs';
 import { SearchComponent } from "../../core/components/search/search";
 import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop';
 import { CommonModule } from '@angular/common';
@@ -51,30 +51,32 @@ export class BoardComponent implements OnInit, OnDestroy {
     showTaskDetailModal = false;
     selectedTask: Task | null = null;
 
-    private sub!: Subscription;
-    private boardsSub!: Subscription;
+    private boardsSub?: Subscription;
 
     showTaskModal = false;
     currentBoardId: string | null = null;
 
     ngOnInit() {
+        // Inicializar el estado de carga
+        this.isLoadingBoards = true;
+        this.isLoadingTeam = true;
+
+        // Suscribirse a los boards
         this.boardsSub = this.boardService.boards$.subscribe({
             next: (boards) => {
                 this.boards = boards;
-                if (boards && boards.length >= 0) {
-                    this.isLoadingBoards = false;
-                }
+                this.isLoadingBoards = false;
+                console.log('Boards cargados:', boards);
             },
-            error: () => {
+            error: (error) => {
+                console.error('Error al cargar boards:', error);
                 this.isLoadingBoards = false;
             }
         });
 
-        this.isLoadingBoards = true;
+        // Cargar equipo
         this.loadTeam();
     }
-
-
 
     loadTeam() {
         this.isLoadingTeam = true;
@@ -93,7 +95,6 @@ export class BoardComponent implements OnInit, OnDestroy {
     }
 
     ngOnDestroy() {
-        this.sub.unsubscribe();
         if (this.boardsSub) {
             this.boardsSub.unsubscribe();
         }

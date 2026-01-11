@@ -28,6 +28,10 @@ export class StaffComponent implements OnInit {
 
     userForm!: FormGroup;
 
+    selectedFile: File | null = null;
+    previewUrl: string | null = null;
+    isUploadingPhoto = false;
+
     positions = [
         'Jefe de Redes',
         'Coordinador de Operaciones',
@@ -108,6 +112,8 @@ export class StaffComponent implements OnInit {
     openAddModal() {
         this.isEditMode = false;
         this.userForm.reset();
+        this.selectedFile = null;
+        this.previewUrl = null;
         this.userForm.get('password')?.setValidators([
             Validators.required,
             Validators.minLength(8),
@@ -117,17 +123,33 @@ export class StaffComponent implements OnInit {
         this.showModal = true;
     }
 
+    private mapRolesToForm(roles: string[]) {
+        const rolesForm: any = {};
+
+        this.availableRoles.forEach(role => {
+            rolesForm[role] = roles.includes(role);
+        });
+
+        return rolesForm;
+    }
+
+
     openEditModal(member: TeamMember) {
         this.isEditMode = true;
+        this.selectedFile = null;
+        this.previewUrl = member.photo;
+
         this.userForm.patchValue({
             id: member.id,
-            username: '',
-            email: '',
-            name: member.name.split(' ')[0] || '',
-            lastname: member.name.split(' ').slice(1).join(' ') || '',
+            username: member.username,
+            email: member.email,
+            name: member.name,
+            lastname: member.lastName,
             position: member.post,
-            photo: member.photo
+            photo: member.photo,
+            roles: this.mapRolesToForm(member.roles)
         });
+
         this.userForm.get('password')?.clearValidators();
         this.userForm.get('password')?.updateValueAndValidity();
         this.showModal = true;
@@ -136,6 +158,70 @@ export class StaffComponent implements OnInit {
     closeModal() {
         this.showModal = false;
         this.userForm.reset();
+        this.selectedFile = null;
+        this.previewUrl = null;
+    }
+
+    onFileSelected(event: Event) {
+        const input = event.target as HTMLInputElement;
+
+        if (input.files && input.files.length > 0) {
+            const file = input.files[0];
+
+            if (!file.type.startsWith('image/')) {
+                toast.error('Solo se permiten archivos de imagen');
+                return;
+            }
+
+            const maxSize = 10 * 1024 * 1024;
+            if (file.size > maxSize) {
+                toast.error('La imagen no debe superar los 10MB');
+                return;
+            }
+
+            this.selectedFile = file;
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                this.previewUrl = e.target?.result as string;
+            };
+            reader.readAsDataURL(file);
+        }
+    }
+
+    removePhoto() {
+        this.selectedFile = null;
+        this.previewUrl = null;
+        this.userForm.patchValue({ photo: '' });
+
+        const fileInput = document.getElementById('photoInput') as HTMLInputElement;
+        if (fileInput) {
+            fileInput.value = '';
+        }
+    }
+
+    deleteUserPhoto() {
+        const userId = this.userForm.get('id')?.value;
+
+        if (!userId) {
+            return;
+        }
+
+        if (!confirm('¿Estás seguro de eliminar la foto de perfil?')) {
+            return;
+        }
+
+        this.teamService.deleteUserPhoto(userId).subscribe({
+            next: (response) => {
+                toast.success('Foto de perfil eliminada');
+                this.previewUrl = response.photo;
+                this.userForm.patchValue({ photo: response.photo });
+            },
+            error: (error) => {
+                console.error('Error al eliminar foto:', error);
+                toast.error('Error al eliminar la foto de perfil');
+            }
+        });
     }
 
     onSubmit() {
@@ -151,7 +237,7 @@ export class StaffComponent implements OnInit {
         const selectedRoles = Object.keys(rolesGroup).filter(role => rolesGroup[role]);
 
         if (selectedRoles.length === 0) {
-            alert('Debe seleccionar al menos un rol');
+            toast.error('Debe seleccionar al menos un rol');
             return;
         }
 
@@ -171,14 +257,18 @@ export class StaffComponent implements OnInit {
             delete userData.password;
         }
 
-
         if (this.isEditMode) {
             this.teamService.updateUser(userData.id!, userData).subscribe({
                 next: (response) => {
                     console.log('Usuario actualizado:', response);
-                    toast.success('Usuario actualizado exitosamente');
-                    this.closeModal();
-                    this.loadTeam();
+
+                    if (this.selectedFile) {
+                        this.uploadPhoto(userData.id!);
+                    } else {
+                        toast.success('Usuario actualizado exitosamente');
+                        this.closeModal();
+                        this.loadTeam();
+                    }
                 },
                 error: (error) => {
                     console.error('Error al actualizar usuario:', error);
@@ -190,9 +280,13 @@ export class StaffComponent implements OnInit {
             this.teamService.createUser(userData).subscribe({
                 next: (response) => {
                     console.log('Usuario creado:', response);
-                    toast.success('Usuario creado exitosamente');
-                    this.closeModal();
-                    this.loadTeam();
+                    if (this.selectedFile && response.id) {
+                        this.uploadPhoto(response.id);
+                    } else {
+                        toast.success('Usuario creado exitosamente');
+                        this.closeModal();
+                        this.loadTeam();
+                    }
                 },
                 error: (error) => {
                     console.error('Error al crear usuario:', error);
@@ -203,14 +297,41 @@ export class StaffComponent implements OnInit {
         }
     }
 
+    private uploadPhoto(userId: string) {
+        if (!this.selectedFile) {
+            return;
+        }
+
+        this.isUploadingPhoto = true;
+
+        this.teamService.uploadUserPhoto(userId, this.selectedFile).subscribe({
+            next: (response) => {
+                console.log('Foto subida:', response);
+                this.isUploadingPhoto = false;
+                toast.success(this.isEditMode ? 'Usuario y foto actualizados' : 'Usuario y foto creados');
+                this.closeModal();
+                this.loadTeam();
+            },
+            error: (error) => {
+                console.error('Error al subir foto:', error);
+                this.isUploadingPhoto = false;
+                toast.warning('Usuario guardado pero hubo un error al subir la foto');
+                this.closeModal();
+                this.loadTeam();
+            }
+        });
+    }
+
     deleteMember(member: TeamMember) {
         if (confirm(`¿Estás seguro de eliminar a ${member.name}?`)) {
             this.teamService.deleteUser(member.id).subscribe({
                 next: () => {
+                    toast.success('Usuario eliminado exitosamente');
                     this.loadTeam();
                 },
                 error: (error) => {
                     console.error('Error al eliminar usuario:', error);
+                    toast.error('Error al eliminar el usuario');
                 }
             });
         }

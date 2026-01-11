@@ -1,0 +1,236 @@
+<div class="max-h-[calc(100svh-56px)] bg-gray-50 py-8 px-4 overflow-y-auto">
+    <div class="max-w-4xl mx-auto">
+        <div class="mb-8">
+            <h1 class="text-3xl font-bold text-gray-900">Mi Perfil</h1>
+            <p class="text-gray-600 mt-2">Administra tu información personal y configuración</p>
+        </div>
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h2 class="text-xl font-semibold text-gray-800 mb-4">Foto de Perfil</h2>
+            <div class="flex items-center gap-6">
+                <div class="relative">
+                    @if (previewUrl) {
+                    <img [src]="previewUrl" alt="Foto de perfil"
+                        class="w-32 h-32 rounded-full object-cover border-4 border-gray-200" />
+                    } @else {
+                    <div
+                        class="w-32 h-32 rounded-full bg-gray-200 flex items-center justify-center border-4 border-gray-300">
+                        <fa-icon [icon]="getIcon('user')" class="text-gray-400 text-5xl" />
+                    </div>
+                    }
+
+                    @if (isUploadingPhoto) {
+                    <div class="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center">
+                        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+                    </div>
+                    }
+                </div>
+
+                <div class="flex flex-col gap-2">
+                    <label for="photoInput"
+                        class="cursor-pointer bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors inline-block text-center">
+                        <fa-icon [icon]="getIcon('upload')" class="mr-2" />
+                        Cambiar foto
+                    </label>
+                    <input type="file" id="photoInput" accept="image/*" (change)="onFileSelected($event)"
+                        class="hidden" />
+
+                    @if (previewUrl && !previewUrl.includes('ui-avatars.com')) {
+                    <button type="button" (click)="deletePhoto()"
+                        class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition-colors">
+                        <fa-icon [icon]="getIcon('delete')" class="mr-2" />
+                        Eliminar foto
+                    </button>
+                    }
+
+                    <p class="text-xs text-gray-500">
+                        JPG, PNG o GIF. Máximo 10MB
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-semibold text-gray-800">Información Personal</h2>
+
+                @if (!isEditingProfile) {
+                <button (click)="toggleEditProfile()" class="text-blue-500 hover:text-blue-700 flex items-center gap-2">
+                    <fa-icon [icon]="getIcon('edit')" />
+                    Editar
+                </button>
+                }
+            </div>
+            <form [formGroup]="profileForm" (ngSubmit)="saveProfile()">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                            Usuario
+                        </label>
+                        <input type="text" formControlName="username"
+                            class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            [class.border-red-500]="isFieldInvalid('profile', 'username')"
+                            [class.border-gray-300]="!isFieldInvalid('profile', 'username')"
+                            [class.bg-gray-50]="!isEditingProfile" />
+                        @if (isFieldInvalid('profile', 'username')) {
+                        <p class="text-red-500 text-xs mt-1">{{ getErrorMessage('profile', 'username') }}</p>
+                        }
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                            Email
+                        </label>
+                        <input type="email" formControlName="email"
+                            class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            [class.border-red-500]="isFieldInvalid('profile', 'email')"
+                            [class.border-gray-300]="!isFieldInvalid('profile', 'email')"
+                            [class.bg-gray-50]="!isEditingProfile" />
+                        @if (isFieldInvalid('profile', 'email')) {
+                        <p class="text-red-500 text-xs mt-1">{{ getErrorMessage('profile', 'email') }}</p>
+                        }
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                            Nombre
+                        </label>
+                        <input type="text" formControlName="name"
+                            class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            [class.border-red-500]="isFieldInvalid('profile', 'name')"
+                            [class.border-gray-300]="!isFieldInvalid('profile', 'name')"
+                            [class.bg-gray-50]="!isEditingProfile" />
+                        @if (isFieldInvalid('profile', 'name')) {
+                        <p class="text-red-500 text-xs mt-1">{{ getErrorMessage('profile', 'name') }}</p>
+                        }
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                            Apellido
+                        </label>
+                        <input type="text" formControlName="lastname"
+                            class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            [class.border-red-500]="isFieldInvalid('profile', 'lastname')"
+                            [class.border-gray-300]="!isFieldInvalid('profile', 'lastname')"
+                            [class.bg-gray-50]="!isEditingProfile" />
+                        @if (isFieldInvalid('profile', 'lastname')) {
+                        <p class="text-red-500 text-xs mt-1">{{ getErrorMessage('profile', 'lastname') }}</p>
+                        }
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                            Cargo
+                        </label>
+                        <input type="text" formControlName="position"
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            [class.bg-gray-50]="!isEditingProfile" />
+                    </div>
+                </div>
+                @if (isEditingProfile) {
+                <div class="flex justify-end gap-3 mt-6 pt-4 border-t">
+                    <button type="button" (click)="toggleEditProfile()"
+                        class="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
+                        Cancelar
+                    </button>
+                    <button type="submit" [disabled]="profileForm.invalid || isLoadingProfile"
+                        class="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2">
+                        @if (isLoadingProfile) {
+                        <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        Guardando...
+                        } @else {
+                        Guardar cambios
+                        }
+                    </button>
+                </div>
+                }
+            </form>
+        </div>
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-semibold text-gray-800">Cambiar Contraseña</h2>
+
+                @if (!isEditingPassword) {
+                <button (click)="toggleEditPassword()"
+                    class="text-blue-500 hover:text-blue-700 flex items-center gap-2">
+                    <fa-icon [icon]="getIcon('key')" />
+                    Cambiar
+                </button>
+                }
+            </div>
+            @if (!isEditingPassword) {
+            <p class="text-gray-600">
+                Tu contraseña fue actualizada por última vez hace algún tiempo.
+            </p>
+            } @else {
+            <form [formGroup]="passwordForm" (ngSubmit)="savePassword()">
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                            Contraseña Actual
+                        </label>
+                        <div class="relative">
+                            <input [type]="showCurrentPassword ? 'text' : 'password'" formControlName="currentPassword"
+                                class="w-full px-4 py-2 border border-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                [class.border-red-500]="isFieldInvalid('password', 'currentPassword')" />
+
+                            <button type="button" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500"
+                                (click)="togglePassword('current')">
+                                <fa-icon [icon]="showCurrentPassword ? getIcon('eye-slash') : getIcon('eye')" />
+                            </button>
+                        </div>
+                        @if (isFieldInvalid('password', 'currentPassword')) {
+                        <p class="text-red-500 text-xs mt-1">{{ getErrorMessage('password', 'currentPassword') }}</p>
+                        }
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                            Nueva Contraseña
+                        </label>
+                        <div class="relative">
+                            <input [type]="showNewPassword ? 'text' : 'password'" formControlName="newPassword"
+                                class="w-full px-4 py-2 border border-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+
+                            <button type="button" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500"
+                                (click)="togglePassword('new')">
+                                <fa-icon [icon]="showNewPassword ? getIcon('eye-slash') : getIcon('eye')" />
+                            </button>
+                        </div>
+                        @if (isFieldInvalid('password', 'newPassword')) {
+                        <p class="text-red-500 text-xs mt-1">{{ getErrorMessage('password', 'newPassword') }}</p>
+                        }
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                            Confirmar Nueva Contraseña
+                        </label>
+                        <div class="relative">
+                            <input [type]="showConfirmPassword ? 'text' : 'password'" formControlName="confirmPassword"
+                                class="w-full px-4 py-2 border border-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+
+                            <button type="button" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500"
+                                (click)="togglePassword('confirm')">
+                                <fa-icon [icon]="showConfirmPassword ? getIcon('eye-slash') : getIcon('eye')" />
+                            </button>
+                        </div>
+
+                        @if (isFieldInvalid('password', 'confirmPassword')) {
+                        <p class="text-red-500 text-xs mt-1">{{ getErrorMessage('password', 'confirmPassword') }}</p>
+                        }
+                    </div>
+                </div>
+                <div class="flex justify-end gap-3 mt-6 pt-4 border-t">
+                    <button type="button" (click)="toggleEditPassword()"
+                        class="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
+                        Cancelar
+                    </button>
+                    <button type="submit" [disabled]="passwordForm.invalid || isLoadingPassword"
+                        class="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2">
+                        @if (isLoadingPassword) {
+                        <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        Actualizando...
+                        } @else {
+                        Actualizar contraseña
+                        }
+                    </button>
+                </div>
+            </form>
+            }
+        </div>
+    </div>
+</div>

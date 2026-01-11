@@ -35,30 +35,42 @@ export class HeaderComponent implements OnInit, OnDestroy {
     unreadCount = 0;
 
     ngOnInit() {
+        this.loadCurrentUser();
+
+        window.addEventListener('userUpdated', this.handleUserUpdate.bind(this));
+    }
+
+    private loadCurrentUser() {
         this.currentUser = this.authService.getUser();
-        console.log(this.currentUser)
+        console.log('Usuario actual:', this.currentUser);
+
         if (this.currentUser && this.currentUser.id) {
             this.initializeNotifications();
         }
+    }
+
+    private handleUserUpdate(event: Event) {
+        const customEvent = event as CustomEvent;
+        this.currentUser = customEvent.detail;
+        console.log('Usuario actualizado en header:', this.currentUser);
     }
 
     ngOnDestroy() {
         this.destroy$.next();
         this.destroy$.complete();
         this.notificationWS.disconnect();
+
+        window.removeEventListener('userUpdated', this.handleUserUpdate.bind(this));
     }
 
     private initializeNotifications() {
-        // Solicitar permiso para notificaciones del navegador
         this.notificationWS.requestNotificationPermission();
 
         const token = this.authService.getToken();
         this.notificationWS.connect(this.currentUser.id, token as string);
 
-        // Cargar notificaciones existentes
         this.loadNotifications();
 
-        // Suscribirse a las notificaciones en tiempo real
         this.notificationWS.notifications$
             .pipe(takeUntil(this.destroy$))
             .subscribe(notifications => {
@@ -78,7 +90,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
             .subscribe({
                 next: (notifications) => {
                     this.notificationWS.setNotifications(notifications);
-                    console.log("adasdadadasdasd"+notifications)
+                    console.log("Notificaciones cargadas:", notifications)
                 },
                 error: (error) => {
                     console.error('Error cargando notificaciones:', error);
@@ -94,7 +106,15 @@ export class HeaderComponent implements OnInit, OnDestroy {
         this.searchService.openSearchModal();
     }
 
-    navigate(path: string) {
+    navigate(path: string, event?: Event) {
+        if (event) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
+
+        this.showDropdown = false;
+        this.showNotifications = false;
+
         this.router.navigate([path]);
     }
 
@@ -102,12 +122,18 @@ export class HeaderComponent implements OnInit, OnDestroy {
         return this.router.url === path;
     }
 
-    toggleDropdown() {
+    toggleDropdown(event?: Event) {
+        if (event) {
+            event.stopPropagation();
+        }
         this.showDropdown = !this.showDropdown;
         this.showNotifications = false;
     }
 
-    toggleNotifications() {
+    toggleNotifications(event?: Event) {
+        if (event) {
+            event.stopPropagation();
+        }
         this.showNotifications = !this.showNotifications;
         this.showDropdown = false;
     }
@@ -204,18 +230,27 @@ export class HeaderComponent implements OnInit, OnDestroy {
     @HostListener('document:click', ['$event'])
     onClickOutside(event: Event) {
         const target = event.target as HTMLElement;
-        if (!target.closest('.dropdown-container') && !target.closest('.notifications-container')) {
-            this.showDropdown = false;
-            this.showNotifications = false;
+
+        if (target.closest('.dropdown-container') || target.closest('.notifications-container')) {
+            return;
         }
-    }
 
-    goToProfile() {
         this.showDropdown = false;
-        this.router.navigate(['/profile']);
+        this.showNotifications = false;
     }
 
-    logout() {
+    goToProfile(event?: Event) {
+        if (event) {
+            event.stopPropagation();
+        }
+        this.showDropdown = false;
+        this.router.navigate(['/kanban/profile']);
+    }
+
+    logout(event?: Event) {
+        if (event) {
+            event.stopPropagation();
+        }
         this.showDropdown = false;
         this.notificationWS.disconnect();
         this.authService.logout();

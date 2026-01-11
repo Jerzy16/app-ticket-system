@@ -6,7 +6,7 @@
         @for (member of team.members; track $index) {
         <div class="flex items-center gap-3">
             <img [src]="member.photo || getDefaultPhoto(member.name)" [alt]="member.name"
-                class="w-10 h-10 rounded-full object-contain"
+                class="w-10 h-10 rounded-full object-cover"
                 (error)="$any($event.target).src = getDefaultPhoto(member.name)" />
 
             <div>

@@ -19,10 +19,13 @@ export interface LoginResponse {
 
 export interface User {
     id: string;
+    username?: string;
+    name?: string;
     email: string;
+    photo?: string;
+    position?: string;
     roles: string[];
 }
-
 
 @Injectable({
     providedIn: 'root',

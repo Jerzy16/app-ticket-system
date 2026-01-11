@@ -12,6 +12,10 @@ export default [
             {
                 path: 'staff',
                 loadComponent: () => import('./pages/staff/staff').then(m => m.StaffComponent)
+            },
+            {
+                path: 'profile',
+                loadComponent: () => import('./pages/profile/profile').then(m => m.ProfileComponent)
             }
         ]
     }

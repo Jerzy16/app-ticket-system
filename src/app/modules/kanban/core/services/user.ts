@@ -4,78 +4,51 @@ import { catchError, map, Observable, throwError } from 'rxjs';
 import { environment } from '../../../../../environments/environment';
 import { ApiResponse } from '../../../../shared/interfaces/api-response.interface';
 
-export interface TeamMember {
-    id: string;
-    name: string;
-    post: string;
-    photo: string;
-    username: string;
-    lastName: string;
-    email: string;
-    roles: string[];
-}
-
-export interface TeamGroup {
-    role: string;
-    members: TeamMember[];
-}
-
 export interface UserDto {
-    id?: string;
+    id: string;
     username: string;
     email: string;
-    password?: string;
     name: string;
     lastName: string;
     position: string;
-    photo: string | null;
+    photo: string;
     roles: string[];
 }
+
+export interface UpdatePasswordDto {
+    currentPassword: string;
+    newPassword: string;
+}
+
 
 @Injectable({
     providedIn: 'root',
 })
-export class TeamService {
+export class UserService {
     private http = inject(HttpClient);
     private url = environment.api_url;
 
-    getTeam(): Observable<TeamGroup[]> {
-        return this.http.get<ApiResponse<TeamGroup[]>>(`${this.url}/users/team`).pipe(
-            map(response => {
-                if (response && response.data && Array.isArray(response.data)) {
-                    return response.data;
-                }
-                console.warn('Respuesta no válida del servidor:', response);
-                return [];
-            }),
-            catchError(this.handleError)
-        );
-    }
-
-    createUser(userData: any): Observable<UserDto> {
-        return this.http.post<ApiResponse<UserDto>>(`${this.url}/users`, userData).pipe(
+    getUserById(id: string): Observable<UserDto> {
+        return this.http.get<ApiResponse<UserDto>>(`${this.url}/users/${id}`).pipe(
             map(response => response.data),
             catchError(this.handleError)
         );
     }
 
-    updateUser(id: string, userData: any): Observable<UserDto> {
+    updateUser(id: string, userData: Partial<UserDto>): Observable<UserDto> {
         return this.http.put<ApiResponse<UserDto>>(`${this.url}/users/${id}`, userData).pipe(
             map(response => response.data),
             catchError(this.handleError)
         );
     }
 
-    deleteUser(id: string): Observable<any> {
-        return this.http.delete<ApiResponse<any>>(`${this.url}/users/${id}`).pipe(
-            map(response => response.data),
+    updatePassword(id: string, passwordData: UpdatePasswordDto): Observable<void> {
+        return this.http.put<ApiResponse<void>>(`${this.url}/users/${id}/password`, passwordData).pipe(
+            map(() => void 0),
             catchError(this.handleError)
         );
     }
 
-    /**
-     * Sube una foto de perfil para un usuario
-     */
     uploadUserPhoto(userId: string, file: File): Observable<UserDto> {
         const formData = new FormData();
         formData.append('file', file);
@@ -89,9 +62,6 @@ export class TeamService {
         );
     }
 
-    /**
-     * Elimina la foto de perfil de un usuario
-     */
     deleteUserPhoto(userId: string): Observable<UserDto> {
         return this.http.delete<ApiResponse<UserDto>>(
             `${this.url}/users/${userId}/photo`
@@ -119,7 +89,7 @@ export class TeamService {
             }
         }
 
-        console.error('Error en TeamService:', error);
+        console.error('Error en UserService:', error);
         return throwError(() => ({ error: { message: errorMessage } }));
     }
 }

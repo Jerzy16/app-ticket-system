@@ -260,7 +260,6 @@ export class StaffComponent implements OnInit {
         if (this.isEditMode) {
             this.teamService.updateUser(userData.id!, userData).subscribe({
                 next: (response) => {
-                    console.log('Usuario actualizado:', response);
 
                     if (this.selectedFile) {
                         this.uploadPhoto(userData.id!);
@@ -279,7 +278,6 @@ export class StaffComponent implements OnInit {
         } else {
             this.teamService.createUser(userData).subscribe({
                 next: (response) => {
-                    console.log('Usuario creado:', response);
                     if (this.selectedFile && response.id) {
                         this.uploadPhoto(response.id);
                     } else {

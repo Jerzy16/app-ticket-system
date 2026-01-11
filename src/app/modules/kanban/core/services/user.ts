@@ -89,7 +89,6 @@ export class UserService {
             }
         }
 
-        console.error('Error en UserService:', error);
         return throwError(() => ({ error: { message: errorMessage } }));
     }
 }

@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
+import { environment } from '../../../../../environments/environment';
 
 export interface NotificationDto {
     id: string;
@@ -29,7 +30,7 @@ interface ApiResponse<T> {
 })
 export class NotificationService {
     private http = inject(HttpClient);
-    private baseUrl = 'http://localhost:8080/api/notifications';
+    private baseUrl = `${environment.api_url}/notifications`;
 
     getUserNotifications(userId: string): Observable<NotificationDto[]> {
         return this.http.get<ApiResponse<NotificationDto[]>>(`${this.baseUrl}/user/${userId}`)

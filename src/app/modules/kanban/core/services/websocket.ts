@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { Client, Message } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 import { BehaviorSubject, Observable } from 'rxjs';
+import { environment } from '../../../../../environments/environment';
 
 export interface NotificationDto {
     id: string;
@@ -17,32 +18,45 @@ export interface NotificationDto {
     updatedAt: string;
 }
 
+export interface BoardUpdate {
+    type: 'TASK_MOVED' | 'TASK_CREATED' | 'TASK_UPDATED' | 'TASK_DELETED' | 'BOARD_CREATED';
+    taskId?: string;
+    boardId?: string;
+    fromBoardId?: string;
+    toBoardId?: string;
+    newIndex?: number;
+    task?: any;
+    board?: any;
+}
+
 @Injectable({
     providedIn: 'root'
 })
-export class NotificationWebSocketService {
+export class WebSocketService {
     private stompClient: Client | null = null;
+
     private notificationsSubject = new BehaviorSubject<NotificationDto[]>([]);
     private unreadCountSubject = new BehaviorSubject<number>(0);
 
-    public notifications$ = this.notificationsSubject.asObservable();
-    public unreadCount$ = this.unreadCountSubject.asObservable();
+    private boardUpdatesSubject = new BehaviorSubject<BoardUpdate | null>(null);
 
     private isConnected = false;
     private userId: string | null = null;
+
+    public notifications$ = this.notificationsSubject.asObservable();
+    public unreadCount$ = this.unreadCountSubject.asObservable();
+    public boardUpdates$ = this.boardUpdatesSubject.asObservable();
 
     constructor() { }
 
     connect(userId: string, token: string): void {
         if (this.isConnected) {
-            console.log('Ya está conectado al WebSocket');
             return;
         }
 
         this.userId = userId;
-        console.log('🔌 Intentando conectar WebSocket para usuario:', userId);
 
-        const socket = new SockJS('http://localhost:8080/ws', undefined, {
+        const socket = new SockJS(`${environment.url}/ws`, undefined, {
             transports: ['websocket', 'xhr-streaming', 'xhr-polling']
         } as any);
 
@@ -52,7 +66,6 @@ export class NotificationWebSocketService {
                 Authorization: `Bearer ${token}`
             },
             debug: (str) => {
-                console.log('STOMP: ' + str);
             },
             reconnectDelay: 5000,
             heartbeatIncoming: 4000,
@@ -60,28 +73,22 @@ export class NotificationWebSocketService {
         });
 
         this.stompClient.onConnect = (frame) => {
-            console.log('✅ WebSocket conectado exitosamente');
-            console.log('👤 Usuario ID:', this.userId);
-            console.log('📋 Frame:', frame);
             this.isConnected = true;
+
             this.subscribeToNotifications();
+            this.subscribeToBoardUpdates();
         };
 
         this.stompClient.onStompError = (frame) => {
-            console.error('❌ Error en STOMP:', frame.headers['message']);
-            console.error('Detalles:', frame.body);
             this.isConnected = false;
         };
 
         this.stompClient.onDisconnect = () => {
-            console.log('🔌 WebSocket desconectado');
             this.isConnected = false;
         };
 
         this.stompClient.activate();
     }
-
-
 
     private subscribeToNotifications(): void {
         if (!this.stompClient || !this.userId) return;
@@ -89,17 +96,35 @@ export class NotificationWebSocketService {
         this.stompClient.subscribe(
             `/user/queue/notifications`,
             (message: Message) => {
-                const notification: NotificationDto = JSON.parse(message.body);
-                console.log('Nueva notificación recibida:', notification);
+                try {
+                    const notification: NotificationDto = JSON.parse(message.body);
+                    const currentNotifications = this.notificationsSubject.value;
+                    this.notificationsSubject.next([notification, ...currentNotifications]);
 
-                const currentNotifications = this.notificationsSubject.value;
-                this.notificationsSubject.next([notification, ...currentNotifications]);
-
-                this.updateUnreadCount();
-
-                this.showBrowserNotification(notification);
+                    this.updateUnreadCount();
+                    this.showBrowserNotification(notification);
+                } catch (error) {
+                }
             }
         );
+
+    }
+
+    private subscribeToBoardUpdates(): void {
+        if (!this.stompClient) return;
+
+        this.stompClient.subscribe(
+            `/topic/board-updates`,
+            (message: Message) => {
+                try {
+                    const update: BoardUpdate = JSON.parse(message.body);
+
+                    this.boardUpdatesSubject.next(update);
+                } catch (error) {
+                }
+            }
+        );
+
     }
 
     disconnect(): void {
@@ -107,7 +132,6 @@ export class NotificationWebSocketService {
             this.stompClient.deactivate();
             this.isConnected = false;
             this.userId = null;
-            console.log('WebSocket desconectado manualmente');
         }
     }
 
@@ -129,6 +153,19 @@ export class NotificationWebSocketService {
             ({ ...n, read: true })
         );
         this.notificationsSubject.next(notifications);
+        this.unreadCountSubject.next(0);
+    }
+
+    removeNotificationLocally(notificationId: string): void {
+        const notifications = this.notificationsSubject.value.filter(
+            n => n.id !== notificationId
+        );
+        this.notificationsSubject.next(notifications);
+        this.updateUnreadCount();
+    }
+
+    clearAllNotifications(): void {
+        this.notificationsSubject.next([]);
         this.unreadCountSubject.next(0);
     }
 
@@ -157,9 +194,7 @@ export class NotificationWebSocketService {
         if ('Notification' in window && Notification.permission === 'default') {
             Notification.requestPermission().then(permission => {
                 if (permission === 'granted') {
-                    console.log('Permiso de notificaciones concedido');
                 } else {
-                    console.log('Permiso de notificaciones denegado');
                 }
             });
         }
@@ -173,16 +208,15 @@ export class NotificationWebSocketService {
         return this.userId;
     }
 
-    removeNotificationLocally(notificationId: string): void {
-        const notifications = this.notificationsSubject.value.filter(
-            n => n.id !== notificationId
-        );
-        this.notificationsSubject.next(notifications);
-        this.updateUnreadCount();
+    getNotifications(): Observable<NotificationDto[]> {
+        return this.notifications$;
     }
 
-    clearAllNotifications(): void {
-        this.notificationsSubject.next([]);
-        this.unreadCountSubject.next(0);
+    getUnreadCount(): Observable<number> {
+        return this.unreadCount$;
+    }
+
+    getBoardUpdates(): Observable<BoardUpdate | null> {
+        return this.boardUpdates$;
     }
 }

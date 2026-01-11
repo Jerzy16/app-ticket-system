@@ -7,8 +7,8 @@ import { AuthService } from '../../../../auth/service/auth';
 import { SearchService } from '../../services/search';
 import { CommonModule } from '@angular/common';
 import { Subject, takeUntil } from 'rxjs';
-import { NotificationDto, NotificationWebSocketService } from '../../services/notification-websocket';
 import { NotificationService } from '../../services/notification';
+import { NotificationDto, WebSocketService } from '../../services/websocket';
 
 @Component({
     selector: 'app-header',
@@ -22,7 +22,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
     private iconService = inject(IconService);
     private searchService = inject(SearchService);
     private authService = inject(AuthService);
-    private notificationWS = inject(NotificationWebSocketService);
+    private notificationWS = inject(WebSocketService);
     private notificationService = inject(NotificationService);
 
     private destroy$ = new Subject<void>();
@@ -42,8 +42,6 @@ export class HeaderComponent implements OnInit, OnDestroy {
 
     private loadCurrentUser() {
         this.currentUser = this.authService.getUser();
-        console.log('Usuario actual:', this.currentUser);
-
         if (this.currentUser && this.currentUser.id) {
             this.initializeNotifications();
         }
@@ -52,7 +50,6 @@ export class HeaderComponent implements OnInit, OnDestroy {
     private handleUserUpdate(event: Event) {
         const customEvent = event as CustomEvent;
         this.currentUser = customEvent.detail;
-        console.log('Usuario actualizado en header:', this.currentUser);
     }
 
     ngOnDestroy() {
@@ -90,10 +87,8 @@ export class HeaderComponent implements OnInit, OnDestroy {
             .subscribe({
                 next: (notifications) => {
                     this.notificationWS.setNotifications(notifications);
-                    console.log("Notificaciones cargadas:", notifications)
                 },
                 error: (error) => {
-                    console.error('Error cargando notificaciones:', error);
                 }
             });
     }
@@ -149,7 +144,6 @@ export class HeaderComponent implements OnInit, OnDestroy {
                         this.notificationWS.markAsReadLocally(notification.id);
                     },
                     error: (error) => {
-                        console.error('Error marcando notificación como leída:', error);
                     }
                 });
         }
@@ -166,7 +160,6 @@ export class HeaderComponent implements OnInit, OnDestroy {
                         this.notificationWS.markAllAsReadLocally();
                     },
                     error: (error) => {
-                        console.error('Error marcando todas como leídas:', error);
                     }
                 });
         }

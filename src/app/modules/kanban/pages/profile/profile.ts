@@ -202,7 +202,6 @@ export class ProfileComponent {
         if (!this.currentUser?.id) return;
 
         this.isLoadingProfile = true;
-        console.log(this.currentUser.roles)
         const updateData = {
             username: this.profileForm.value.username,
             name: this.profileForm.value.name,

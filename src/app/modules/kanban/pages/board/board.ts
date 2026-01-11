@@ -16,6 +16,8 @@ import { BoardService } from '../../core/services/board';
 import { TeamGroup, TeamService } from '../../core/services/team';
 import { TaskService } from '../../core/services/task';
 import { TaskDetailModalComponent } from "../../core/components/task-detail-modal/task-detail-modal";
+import { BoardUpdate, WebSocketService } from '../../core/services/websocket';
+import { toast } from 'ngx-sonner';
 
 @Component({
     selector: 'app-board',
@@ -39,8 +41,9 @@ export class BoardComponent implements OnInit, OnDestroy {
     private boardService = inject(BoardService);
     private teamService = inject(TeamService);
     private iconService = inject(IconService);
-    private taskService = inject(TaskService)
+    private taskService = inject(TaskService);
     private http = inject(HttpClient);
+    private webSocketService = inject(WebSocketService);
 
     isOpen = false;
     boards: Board[] = [];
@@ -52,30 +55,32 @@ export class BoardComponent implements OnInit, OnDestroy {
     selectedTask: Task | null = null;
 
     private boardsSub?: Subscription;
-
+    private boardUpdatesSub?: Subscription;
+    private notificationsSub?: Subscription;
     showTaskModal = false;
     currentBoardId: string | null = null;
 
     ngOnInit() {
-        // Inicializar el estado de carga
         this.isLoadingBoards = true;
         this.isLoadingTeam = true;
 
-        // Suscribirse a los boards
         this.boardsSub = this.boardService.boards$.subscribe({
             next: (boards) => {
                 this.boards = boards;
                 this.isLoadingBoards = false;
-                console.log('Boards cargados:', boards);
             },
             error: (error) => {
-                console.error('Error al cargar boards:', error);
                 this.isLoadingBoards = false;
             }
         });
 
-        // Cargar equipo
         this.loadTeam();
+
+        this.connectWebSocket();
+
+        this.listenToBoardUpdates();
+
+        this.listenToNotifications();
     }
 
     loadTeam() {
@@ -84,20 +89,125 @@ export class BoardComponent implements OnInit, OnDestroy {
             next: (data) => {
                 this.team = Array.isArray(data) ? data : [];
                 this.isLoadingTeam = false;
-                console.log('Equipo cargado:', this.team);
             },
             error: (error) => {
-                console.error('Error al cargar el equipo:', error);
                 this.team = [];
                 this.isLoadingTeam = false;
             }
         });
     }
 
+    connectWebSocket() {
+        const token = localStorage.getItem('token');
+        const userId = localStorage.getItem('userId');
+
+        if (token && userId) {
+            this.webSocketService.connect(token, userId);
+        } else {
+        }
+    }
+
+    listenToBoardUpdates() {
+        this.boardUpdatesSub = this.webSocketService.getBoardUpdates().subscribe({
+            next: (update: BoardUpdate | null) => {
+                if (!update) return;
+
+                switch (update.type) {
+                    case 'TASK_CREATED':
+                        this.handleTaskCreated(update);
+                        break;
+
+                    case 'TASK_UPDATED':
+                        this.handleTaskUpdated(update);
+                        break;
+
+                    case 'TASK_MOVED':
+                        this.handleTaskMoved(update);
+                        break;
+
+                    case 'TASK_DELETED':
+                        this.handleTaskDeleted(update);
+                        break;
+
+                    case 'BOARD_CREATED':
+                        this.handleBoardCreated(update);
+                        break;
+
+                    default:
+                        console.warn('Tipo de actualización desconocido:', update.type);
+                }
+            },
+            error: (error) => {
+                console.error('Error en board updates:', error);
+            }
+        });
+    }
+
+    listenToNotifications() {
+        this.notificationsSub = this.webSocketService.getNotifications().subscribe({
+            next: (notification) => {
+                if (!notification) return;
+
+                // Aquí puedes mostrar una alerta, toast, o actualizar un contador
+                // Por ejemplo:
+                // this.toastService.show(notification.title, notification.message);
+                // this.notificationCount++;
+            },
+            error: (error) => {
+                console.error('Error en notificaciones:', error);
+            }
+        });
+    }
+
+
+    private handleTaskCreated(update: BoardUpdate) {
+        toast.success('Nueva tarea creada')
+        this.boardService.refreshBoards();
+    }
+
+    private handleTaskUpdated(update: BoardUpdate) {
+        toast.success('Tarea actualizada')
+        if (update.boardId && update.taskId && update.task) {
+            this.boardService.updateTask(update.boardId, update.taskId, update.task);
+        }
+    }
+
+    private handleTaskMoved(update: BoardUpdate) {
+        toast.success('Tarea movida')
+        if (update.taskId && update.fromBoardId && update.toBoardId && update.newIndex !== undefined) {
+            this.boardService.moveTask(
+                update.taskId,
+                update.fromBoardId,
+                update.toBoardId,
+                update.newIndex
+            );
+        }
+    }
+
+    private handleTaskDeleted(update: BoardUpdate) {
+        if (update.boardId && update.taskId) {
+            this.boardService.deleteTask(update.boardId, update.taskId);
+        }
+    }
+
+    private handleBoardCreated(update: BoardUpdate) {
+        this.boardService.refreshBoards();
+    }
+
     ngOnDestroy() {
         if (this.boardsSub) {
             this.boardsSub.unsubscribe();
         }
+
+        if (this.boardUpdatesSub) {
+            this.boardUpdatesSub.unsubscribe();
+        }
+
+        if (this.notificationsSub) {
+            this.notificationsSub.unsubscribe();
+        }
+
+        this.webSocketService.disconnect();
     }
 
     getBoardIds(): string[] {
@@ -122,7 +232,6 @@ export class BoardComponent implements OnInit, OnDestroy {
     }
 
     openTaskModal(boardId: string) {
-        console.log(boardId)
         this.currentBoardId = boardId;
         this.showTaskModal = true;
     }
@@ -133,12 +242,9 @@ export class BoardComponent implements OnInit, OnDestroy {
     }
 
     onTaskSave(taskDto: TaskCreateDto) {
-        console.log('Enviando tarea al backend:', taskDto);
-
         this.taskService.createTask(taskDto).subscribe({
             next: (response) => {
-                console.log('Tarea creada exitosamente:', response);
-
+                toast.success('Tarea creada exitosamente');
                 const assignedUserNames = response.data.assignedTo?.map((userId: string) => {
                     const member = this.allTeamMembers.find(m => m.id === userId);
                     return member ? member.name : userId;
@@ -159,7 +265,7 @@ export class BoardComponent implements OnInit, OnDestroy {
             },
             error: (error) => {
                 console.error('Error al crear la tarea:', error);
-                alert('Error al crear la tarea. Por favor, intente nuevamente.');
+                toast.error('Error al crear la tarea. Por favor, intente nuevamente.');
             }
         });
     }
@@ -170,11 +276,9 @@ export class BoardComponent implements OnInit, OnDestroy {
     }
 
     onTaskDetailSave(updatedTask: Task) {
-        console.log('Actualizando tarea:', updatedTask);
 
         this.taskService.updateTask(updatedTask.id!, updatedTask).subscribe({
             next: (response) => {
-                console.log('Tarea actualizada exitosamente:', response);
 
                 this.boardService.updateTask(updatedTask.boardId!, updatedTask.id!, updatedTask);
 
@@ -182,7 +286,7 @@ export class BoardComponent implements OnInit, OnDestroy {
             },
             error: (error) => {
                 console.error('Error al actualizar la tarea:', error);
-                alert('Error al actualizar la tarea. Por favor, intente nuevamente.');
+                toast.error('Error al actualizar la tarea. Por favor, intente nuevamente.');
             }
         });
     }

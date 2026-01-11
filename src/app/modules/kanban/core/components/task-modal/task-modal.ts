@@ -181,7 +181,6 @@ export class TaskModalComponent implements OnInit, AfterViewInit, OnDestroy {
             longitude: formValue.longitude || null
         };
 
-        console.log('DTO a enviar:', taskDto);
         this.save.emit(taskDto);
     }
 

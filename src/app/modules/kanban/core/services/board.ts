@@ -5,12 +5,14 @@ import { Board } from '../models/board.model';
 import { environment } from '../../../../../environments/environment';
 import { ApiResponse } from '../../../../shared/interfaces/api-response.interface';
 import { Task } from '../models/task/task.model';
+import { TaskService } from './task';
 
 @Injectable({
     providedIn: 'root',
 })
 export class BoardService {
     private http = inject(HttpClient);
+    private taskService = inject(TaskService); 
     private url = environment.api_url;
 
     private boardsSubject = new BehaviorSubject<Board[]>([]);
@@ -28,10 +30,8 @@ export class BoardService {
                     tasks: board.tasks || []
                 }));
                 this.boardsSubject.next(boards);
-                console.log('Boards con tareas cargados desde el backend:', boards);
             },
             error: (error) => {
-                console.error('Error al cargar boards desde el backend:', error);
                 this.boardsSubject.next([]);
             }
         });
@@ -60,10 +60,8 @@ export class BoardService {
                 const board = { ...response.data, tasks: [] };
                 const currentBoards = this.boardsSubject.value;
                 this.boardsSubject.next([...currentBoards, board]);
-                console.log('Board creado:', board);
             }),
             catchError(error => {
-                console.error('Error al crear board:', error);
                 throw error;
             })
         );
@@ -71,8 +69,12 @@ export class BoardService {
 
     addBoard(title: string): void {
         this.createBoard(title).subscribe({
-            next: () => console.log('Board agregado exitosamente'),
-            error: (error) => console.error('Error al agregar board:', error)
+            next: () => {
+
+            },
+            error: (error) => {
+
+            }
         });
     }
 
@@ -99,6 +101,9 @@ export class BoardService {
         }
     }
 
+    /**
+     * ✅ ACTUALIZADO: Ahora usa TaskService para hacer la petición al backend
+     */
     moveTask(taskId: string, fromBoardId: string, toBoardId: string, toIndex: number): void {
         const boards = this.boardsSubject.value;
         const fromBoardIndex = boards.findIndex(b => b.id === fromBoardId);
@@ -106,6 +111,7 @@ export class BoardService {
 
         if (fromBoardIndex === -1 || toBoardIndex === -1) return;
 
+        // Actualizar localmente primero (optimistic update)
         const updatedBoards = [...boards];
         const fromTasks = [...(updatedBoards[fromBoardIndex].tasks || [])];
         const toTasks = fromBoardId === toBoardId
@@ -138,15 +144,11 @@ export class BoardService {
 
         this.boardsSubject.next(updatedBoards);
 
-        this.http.patch<ApiResponse<Task>>(`${this.url}/tasks/${taskId}/move`, {
-            toBoardId: toBoardId,
-            position: toIndex
-        }).subscribe({
+        this.taskService.moveTask(taskId, fromBoardId, toBoardId, toIndex).subscribe({
             next: (response) => {
-                console.log('Tarea movida en el backend:', response.data);
+
             },
             error: (error) => {
-                console.error('Error al mover tarea:', error);
                 this.refreshBoards();
             }
         });
@@ -167,7 +169,6 @@ export class BoardService {
                 }
             }),
             catchError(error => {
-                console.error('Error al actualizar board:', error);
                 throw error;
             })
         );
@@ -186,14 +187,14 @@ export class BoardService {
                 };
                 this.boardsSubject.next([...boards]);
 
-                // TODO: Implementar llamada al backend
-                /*
-                this.http.patch<ApiResponse<Task>>(`${this.url}/tasks/${taskId}`, updates)
-                    .subscribe({
-                        next: (response) => console.log('Tarea actualizada en el backend:', response.data),
-                        error: (error) => console.error('Error al actualizar tarea:', error)
-                    });
-                */
+                this.taskService.updateTask(taskId, updates).subscribe({
+                    next: (response) => {
+
+                    },
+                    error: (error) => {
+                        this.refreshBoards();
+                    }
+                });
             }
         }
     }
@@ -206,14 +207,14 @@ export class BoardService {
             board.tasks = board.tasks.filter(t => t.id !== taskId);
             this.boardsSubject.next([...boards]);
 
-            // TODO: Implementar llamada al backend
-            /*
-            this.http.delete<ApiResponse<void>>(`${this.url}/tasks/${taskId}`)
-                .subscribe({
-                    next: () => console.log('Tarea eliminada del backend'),
-                    error: (error) => console.error('Error al eliminar tarea:', error)
-                });
-            */
+            this.taskService.deleteTask(taskId).subscribe({
+                next: () => {
+
+                },
+                error: (error) => {
+                    this.refreshBoards();
+                }
+            });
         }
     }
 
@@ -222,10 +223,8 @@ export class BoardService {
             tap(() => {
                 const boards = this.boardsSubject.value.filter(b => b.id !== boardId);
                 this.boardsSubject.next(boards);
-                console.log('Board eliminado');
             }),
             catchError(error => {
-                console.error('Error al eliminar board:', error);
                 throw error;
             })
         );

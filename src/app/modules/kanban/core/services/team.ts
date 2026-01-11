@@ -45,7 +45,6 @@ export class TeamService {
                 if (response && response.data && Array.isArray(response.data)) {
                     return response.data;
                 }
-                console.warn('Respuesta no válida del servidor:', response);
                 return [];
             }),
             catchError(this.handleError)
@@ -119,7 +118,6 @@ export class TeamService {
             }
         }
 
-        console.error('Error en TeamService:', error);
         return throwError(() => ({ error: { message: errorMessage } }));
     }
 }

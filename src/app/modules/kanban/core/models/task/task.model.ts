@@ -1,8 +1,11 @@
+import { User } from "../../../../auth/service/auth";
+
 export interface Task {
     id: string;
     title: string;
     description: string;
     assignedTo?: string[];
+    assignedUsers?: User[]
     priority: 'low' | 'medium' | 'high';
     createdAt: Date;
     dueDate?: Date;

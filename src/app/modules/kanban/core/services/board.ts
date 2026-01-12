@@ -12,7 +12,7 @@ import { TaskService } from './task';
 })
 export class BoardService {
     private http = inject(HttpClient);
-    private taskService = inject(TaskService); 
+    private taskService = inject(TaskService);
     private url = environment.api_url;
 
     private boardsSubject = new BehaviorSubject<Board[]>([]);
@@ -29,6 +29,7 @@ export class BoardService {
                     ...board,
                     tasks: board.tasks || []
                 }));
+                console.log(boards)
                 this.boardsSubject.next(boards);
             },
             error: (error) => {

@@ -52,13 +52,13 @@
                     </span>
                 </div>
                 <p class="text-xs text-gray-600 mb-2">{{ task.description }}</p>
-                @if (task.assignedTo && task.assignedTo.length > 0) {
+                @if (task.assignedUsers && task.assignedUsers.length > 0) {
                 <div class="flex items-center gap-1 mb-2">
                     <fa-icon [icon]="getIcon('user')" class="text-gray-400 text-xs" />
                     <div class="flex flex-wrap gap-1">
-                        @for (person of task.assignedTo; track person) {
+                        @for (person of task.assignedUsers; track person) {
                         <span class="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">
-                            {{ person }}
+                            {{ person.name }} {{ person.lastName}}
                         </span>
                         }
                     </div>

@@ -1,7 +1,7 @@
 import { Component, inject, OnInit, OnDestroy } from '@angular/core';
 import { BoardContainerComponent } from "../../core/components/board-container/board-container";
 import { BoardTeamComponent } from "../../core/components/board-team/board-team";
-import { Subscription } from 'rxjs';
+import { Subscription, switchMap } from 'rxjs';
 import { SearchComponent } from "../../core/components/search/search";
 import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop';
 import { CommonModule } from '@angular/common';
@@ -16,8 +16,11 @@ import { BoardService } from '../../core/services/board';
 import { TeamGroup, TeamService } from '../../core/services/team';
 import { TaskService } from '../../core/services/task';
 import { TaskDetailModalComponent } from "../../core/components/task-detail-modal/task-detail-modal";
+import { TaskCompletionData, TaskCompletionModal } from '../../core/components/task-completion-modal/task-completion-modal';
 import { BoardUpdate, WebSocketService } from '../../core/services/websocket';
 import { toast } from 'ngx-sonner';
+import { ImageUploadService } from '../../core/services/image-upload';
+import { TaskCompletionService } from '../../core/services/task-completion';
 
 @Component({
     selector: 'app-board',
@@ -30,7 +33,8 @@ import { toast } from 'ngx-sonner';
         DragDropModule,
         FontAwesomeModule,
         TaskModalComponent,
-        TaskDetailModalComponent
+        TaskDetailModalComponent,
+        TaskCompletionModal
     ],
     templateUrl: './board.html',
     styleUrl: './board.css',
@@ -44,6 +48,11 @@ export class BoardComponent implements OnInit, OnDestroy {
     private taskService = inject(TaskService);
     private http = inject(HttpClient);
     private webSocketService = inject(WebSocketService);
+    private imageUploadService = inject(ImageUploadService);
+    private taskCompletionService = inject(TaskCompletionService);
+
+    // Define el ID del tablero de completados como constante
+    private readonly COMPLETED_BOARD_ID = '8a0d1b73-373a-46bc-9477-9c86e756b24e';
 
     isOpen = false;
     boards: Board[] = [];
@@ -52,13 +61,22 @@ export class BoardComponent implements OnInit, OnDestroy {
     isLoadingBoards = false;
 
     showTaskDetailModal = false;
-    selectedTask: Task | null = null;
+    selectedTaskForCompletion: Task | null = null;
 
     private boardsSub?: Subscription;
     private boardUpdatesSub?: Subscription;
     private notificationsSub?: Subscription;
     showTaskModal = false;
     currentBoardId: string | null = null;
+
+    showCompletionModal = false;
+    pendingTaskMove: {
+        taskId: string;
+        fromBoardId: string;
+        toBoardId: string;
+        newIndex: number;
+        task: any;
+    } | null = null;
 
     ngOnInit() {
         this.isLoadingBoards = true;
@@ -103,7 +121,6 @@ export class BoardComponent implements OnInit, OnDestroy {
 
         if (token && userId) {
             this.webSocketService.connect(token, userId);
-        } else {
         }
     }
 
@@ -147,11 +164,6 @@ export class BoardComponent implements OnInit, OnDestroy {
         this.notificationsSub = this.webSocketService.getNotifications().subscribe({
             next: (notification) => {
                 if (!notification) return;
-
-                // Aquí puedes mostrar una alerta, toast, o actualizar un contador
-                // Por ejemplo:
-                // this.toastService.show(notification.title, notification.message);
-                // this.notificationCount++;
             },
             error: (error) => {
                 console.error('Error en notificaciones:', error);
@@ -216,12 +228,72 @@ export class BoardComponent implements OnInit, OnDestroy {
 
     onTaskDrop(event: CdkDragDrop<any[]>, boardId: string) {
         if (event.previousContainer === event.container) {
+            // Mover dentro del mismo tablero
             moveItemInArray(event.container.data, event.previousIndex, event.currentIndex);
         } else {
-            const taskId = event.previousContainer.data[event.previousIndex].id;
+            const task = event.previousContainer.data[event.previousIndex];
             const fromBoardId = event.previousContainer.id;
-            this.boardService.moveTask(taskId, fromBoardId, boardId, event.currentIndex);
+
+            // Verificar si se está moviendo al tablero de completados
+            if (boardId === this.COMPLETED_BOARD_ID) {
+                this.selectedTaskForCompletion = task;
+                this.showCompletionModal = true;
+
+                // Guardar información del movimiento pendiente
+                this.pendingTaskMove = {
+                    taskId: task.id,
+                    fromBoardId: fromBoardId,
+                    toBoardId: boardId,
+                    newIndex: event.currentIndex,
+                    task: task
+                };
+            } else {
+                // Mover directamente a otros tableros
+                this.boardService.moveTask(task.id, fromBoardId, boardId, event.currentIndex);
+            }
         }
+    }
+
+    onTaskComplete(completionData: TaskCompletionData) {
+    if (!this.selectedTaskForCompletion || !this.pendingTaskMove) return;
+
+    toast.promise(
+        // Usa el nuevo método que maneja todo internamente
+        this.taskCompletionService.createCompletionWithImages(
+            completionData.taskId,
+            this.selectedTaskForCompletion.boardId!,
+            completionData.description,
+            completionData.images,
+            completionData.notes
+        ).toPromise(),
+        {
+            loading: 'Subiendo evidencias...',
+            success: (response) => {
+                // Mover la tarea usando la información guardada
+                if (this.pendingTaskMove) {
+                    this.boardService.moveTask(
+                        this.pendingTaskMove.taskId,
+                        this.pendingTaskMove.fromBoardId,
+                        this.pendingTaskMove.toBoardId,
+                        this.pendingTaskMove.newIndex
+                    );
+                }
+                this.closeCompletionModal();
+                return 'Tarea completada exitosamente';
+            },
+            error: (error) => {
+                console.error('Error al completar la tarea:', error);
+                this.closeCompletionModal(); // Cierra el modal aunque falle
+                return 'Error al completar la tarea';
+            }
+        }
+    );
+}
+
+    closeCompletionModal() {
+        this.showCompletionModal = false;
+        this.selectedTaskForCompletion = null;
+        this.pendingTaskMove = null;
     }
 
     addNewBoard() {
@@ -271,17 +343,14 @@ export class BoardComponent implements OnInit, OnDestroy {
     }
 
     onTaskClick(task: Task) {
-        this.selectedTask = task;
+        this.selectedTaskForCompletion = task;
         this.showTaskDetailModal = true;
     }
 
     onTaskDetailSave(updatedTask: Task) {
-
         this.taskService.updateTask(updatedTask.id!, updatedTask).subscribe({
             next: (response) => {
-
                 this.boardService.updateTask(updatedTask.boardId!, updatedTask.id!, updatedTask);
-
                 this.closeTaskDetailModal();
             },
             error: (error) => {
@@ -293,7 +362,7 @@ export class BoardComponent implements OnInit, OnDestroy {
 
     closeTaskDetailModal() {
         this.showTaskDetailModal = false;
-        this.selectedTask = null;
+        this.selectedTaskForCompletion = null;
     }
 
     get allTeamMembers(): TeamMember[] {

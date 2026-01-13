@@ -20,12 +20,10 @@
             <fa-icon [icon]="getIcon('users-gear')" />
             Personal
         </button>
-        <button class="py-2 text-sm px-4 bg-gray-200 border-l border-gray-300 hover:bg-gray-300 transition-colors">
-            <fa-icon [icon]="getIcon('hammer')" class="text-gray-600" />
-            Herramientas
-        </button>
-        <button
-            class="py-2 text-sm px-4 bg-gray-200 rounded-r-lg border-l border-gray-300 hover:bg-gray-300 transition-colors">
+        <button [class.bg-secondary]="isActive('/kanban/report')" [class.text-white]="isActive('/kanban/report')"
+            [class.bg-gray-200]="!isActive('/kanban/report')" [class.text-gray-600]="!isActive('/kanban/report')"
+            class="py-2 text-sm px-4 bg-gray-200 rounded-r-lg border-l border-gray-300 hover:bg-gray-300 transition-colors"
+            (click)="navigate('/kanban/report')">
             <fa-icon [icon]="getIcon('chart-line')" class="text-gray-600" />
             Reportes
         </button>

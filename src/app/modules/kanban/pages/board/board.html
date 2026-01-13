@@ -103,8 +103,19 @@
     }
 </div>
 
-@if(showTaskDetailModal && selectedTask) {
-<app-task-detail-modal [task]="selectedTask" [allTeamMembers]="allTeamMembers" (save)="onTaskDetailSave($event)"
+@if(showTaskDetailModal && selectedTaskForCompletion) {
+<app-task-detail-modal [task]="selectedTaskForCompletion" [allTeamMembers]="allTeamMembers" (save)="onTaskDetailSave($event)"
     (cancel)="closeTaskDetailModal()" />
+}
+
+@if(showCompletionModal && selectedTaskForCompletion) {
+<app-task-completion-modal
+  [taskId]="selectedTaskForCompletion.id"
+  [boardId]="selectedTaskForCompletion.boardId"
+  [taskTitle]="selectedTaskForCompletion.title"
+  [taskDescription]="selectedTaskForCompletion.description"
+  (complete)="onTaskComplete($event)"
+  (cancel)="closeCompletionModal()">
+</app-task-completion-modal>
 }
 }

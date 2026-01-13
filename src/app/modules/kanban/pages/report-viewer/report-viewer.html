@@ -1,0 +1,360 @@
+<div class=" max-h-[calc(100vh-56px)] px-4 py-8 overflow-y-auto">
+    <div class="container mx-auto">
+        <div class="mb-8">
+            <h1 class="text-3xl font-bold text-gray-900 mb-2">Reportes de Tareas</h1>
+            <p class="text-gray-600">Genera y visualiza reportes detallados con evidencias</p>
+        </div>
+
+        <!-- Panel de filtros -->
+        <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Fecha inicio</label>
+                    <input type="date" [(ngModel)]="startDate"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" />
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Fecha fin</label>
+                    <input type="date" [(ngModel)]="endDate"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" />
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Tipo de reporte</label>
+                    <select [(ngModel)]="reportType"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        <option value="GENERAL">General</option>
+                        <option value="BY_USER">Por usuario</option>
+                        <option value="BY_BOARD">Por tablero</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Filtros adicionales según tipo de reporte -->
+            @if (reportType === 'BY_USER') {
+            <div class="mb-4">
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Seleccionar Usuario</label>
+                <select [(ngModel)]="selectedUserId"
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                    <option [value]="null">-- Seleccione un usuario --</option>
+                    @if (availableUsers.length > 0) {
+                    @for (user of availableUsers; track user.userId) {
+                    <option [value]="user.userId">{{ user.userName }} @if(user.position){({{ user.position }})}</option>
+                    }
+                    } @else {
+                    <option disabled>Cargando usuarios...</option>
+                    }
+                </select>
+            </div>
+            }
+
+            @if (reportType === 'BY_BOARD') {
+            <div class="mb-4">
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Seleccionar Tablero</label>
+                <select [(ngModel)]="selectedBoardId"
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                    <option [value]="null">-- Seleccione un tablero --</option>
+                    @if (availableBoards.length > 0) {
+                    @for (board of availableBoards; track board.boardId) {
+                    <option [value]="board.boardId">{{ board.boardName }} ({{ board.taskCount }} tareas)</option>
+                    }
+                    } @else {
+                    <option disabled>Cargando tableros...</option>
+                    }
+                </select>
+            </div>
+            }
+
+            <!-- Botones de acción -->
+            <div class="flex gap-3">
+                <button (click)="generateReport()" [disabled]="isLoading"
+                    class="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-3 rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center">
+                    <fa-icon [icon]="getIcon('chart')" class="mr-2" />
+                    {{ isLoading ? 'Generando...' : 'Generar Reporte' }}
+                </button>
+                <button (click)="setQuickDateRange(7)" [disabled]="isLoading"
+                    class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                    Últimos 7 días
+                </button>
+                <button (click)="setQuickDateRange(30)" [disabled]="isLoading"
+                    class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                    Últimos 30 días
+                </button>
+            </div>
+        </div>
+
+        <!-- Loading State -->
+        @if (isLoading) {
+        <div class="flex justify-center items-center py-16">
+            <div class="text-center">
+                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                <p class="text-gray-600">Generando reporte...</p>
+            </div>
+        </div>
+        }
+
+        <!-- Contenido del Reporte -->
+        @if (report && !isLoading) {
+        <div class="space-y-6">
+            <!-- Resumen -->
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <div class="flex items-center justify-between mb-6">
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-900">Resumen</h2>
+                        <p class="text-sm text-gray-500 mt-1">
+                            Reporte del {{ report.startDate | date:'dd/MM/yyyy' }} al {{ report.endDate |
+                            date:'dd/MM/yyyy' }}
+                        </p>
+                    </div>
+                    <div class="flex gap-2">
+                        <button (click)="exportData('json')"
+                            class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center">
+                            <fa-icon [icon]="getIcon('download')" class="mr-2" />
+                            JSON
+                        </button>
+                        <button (click)="exportData('csv')"
+                            class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center">
+                            <fa-icon [icon]="getIcon('file-csv')" class="mr-2" />
+                            CSV
+                        </button>
+                        <button (click)="downloadPdf()"
+                            class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center">
+                            <fa-icon [icon]="getIcon('pdf')" class="mr-2" />
+                            PDF
+                        </button>
+                        <button (click)="downloadExcel()"
+                            class="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors flex items-center">
+                            <fa-icon [icon]="getIcon('excel')" class="mr-2" />
+                            Excel
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Métricas principales -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                    <div class="bg-gradient-to-br from-blue-50 to-blue-100 p-6 rounded-xl border border-blue-200">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-blue-600 font-semibold">Total Tareas</span>
+                            <fa-icon [icon]="getIcon('tasks')" class="text-blue-600 text-xl" />
+                        </div>
+                        <div class="text-3xl font-bold text-blue-900">{{ report.summary.totalTasks }}</div>
+                    </div>
+                    <div class="bg-gradient-to-br from-green-50 to-green-100 p-6 rounded-xl border border-green-200">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-green-600 font-semibold">Completadas</span>
+                            <fa-icon [icon]="getIcon('check')" class="text-green-600 text-xl" />
+                        </div>
+                        <div class="text-3xl font-bold text-green-900">{{ report.summary.completedTasks }}</div>
+                        <div class="text-xs text-green-700 mt-1">
+                            {{ completionPercentage | number:'1.1-1' }}% del total
+                        </div>
+                    </div>
+                    <div class="bg-gradient-to-br from-yellow-50 to-yellow-100 p-6 rounded-xl border border-yellow-200">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-yellow-600 font-semibold">Pendientes</span>
+                            <fa-icon [icon]="getIcon('clock')" class="text-yellow-600 text-xl" />
+                        </div>
+                        <div class="text-3xl font-bold text-yellow-900">{{ report.summary.pendingTasks }}</div>
+                    </div>
+                    <div class="bg-gradient-to-br from-purple-50 to-purple-100 p-6 rounded-xl border border-purple-200">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-purple-600 font-semibold">Evidencias</span>
+                            <fa-icon [icon]="getIcon('image')" class="text-purple-600 text-xl" />
+                        </div>
+                        <div class="text-3xl font-bold text-purple-900">{{ report.summary.totalEvidences }}</div>
+                        @if (report.summary.completedTasks > 0) {
+                        <div class="text-xs text-purple-700 mt-1">
+                            {{ averageEvidencesPerTask | number:'1.1-1' }} por tarea
+                        </div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <!-- Rendimiento por Usuario -->
+            @if (report.summary.userPerformance && report.summary.userPerformance.length > 0) {
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <h3 class="text-xl font-bold text-gray-900 mb-4">Rendimiento por Usuario</h3>
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead>
+                            <tr class="border-b border-gray-200">
+                                <th class="text-left py-3 px-4 font-semibold text-gray-700">Usuario</th>
+                                <th class="text-center py-3 px-4 font-semibold text-gray-700">Tareas Completadas</th>
+                                <th class="text-center py-3 px-4 font-semibold text-gray-700">Evidencias</th>
+                                <th class="text-center py-3 px-4 font-semibold text-gray-700">Tiempo Promedio</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @for (user of report.summary.userPerformance; track user.userId) {
+                            <tr class="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                                <td class="py-3 px-4 font-medium">{{ user.userName }}</td>
+                                <td class="text-center py-3 px-4">
+                                    <span
+                                        class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-semibold">
+                                        {{ user.tasksCompleted }}
+                                    </span>
+                                </td>
+                                <td class="text-center py-3 px-4">
+                                    <span
+                                        class="bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-sm font-semibold">
+                                        {{ user.evidencesProvided }}
+                                    </span>
+                                </td>
+                                <td class="text-center py-3 px-4 text-gray-600">
+                                    {{ user.averageCompletionTime | number:'1.1-1' }} hrs
+                                </td>
+                            </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            }
+
+            <!-- Estadísticas por Tablero -->
+            @if (report.summary.boardStatistics && report.summary.boardStatistics.length > 0) {
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <h3 class="text-xl font-bold text-gray-900 mb-4">Estadísticas por Tablero</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    @for (board of report.summary.boardStatistics; track board.boardId) {
+                    <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                        <h4 class="font-semibold text-gray-900 mb-3 truncate" [title]="board.boardName">
+                            {{ board.boardName }}
+                        </h4>
+                        <div class="space-y-2">
+                            <div class="flex justify-between text-sm">
+                                <span class="text-gray-600">Total:</span>
+                                <span class="font-semibold">{{ board.totalTasks }}</span>
+                            </div>
+                            <div class="flex justify-between text-sm">
+                                <span class="text-gray-600">Completadas:</span>
+                                <span class="font-semibold text-green-600">{{ board.completedTasks }}</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2">
+                                <div class="bg-gradient-to-r from-blue-600 to-purple-600 h-2 rounded-full transition-all"
+                                    [style.width.%]="board.completionRate"></div>
+                            </div>
+                            <div class="text-center text-sm font-semibold text-gray-700">
+                                {{ board.completionRate | number:'1.1-1' }}% completado
+                            </div>
+                        </div>
+                    </div>
+                    }
+                </div>
+            </div>
+            }
+
+            <!-- Detalle de Tareas -->
+            @if (report.tasks && report.tasks.length > 0) {
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-xl font-bold text-gray-900">Detalle de Tareas</h3>
+                    <span class="text-sm text-gray-500">{{ report.tasks.length }} tareas</span>
+                </div>
+                <div class="space-y-4">
+                    @for (task of report.tasks; track task.taskId) {
+                    <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                        <div class="flex items-start justify-between mb-3">
+                            <div class="flex-1">
+                                <h4 class="font-semibold text-gray-900 mb-1">{{ task.taskTitle }}</h4>
+                                <p class="text-sm text-gray-600">{{ task.boardName }}</p>
+                                @if (task.priority) {
+                                <span class="inline-block mt-1 px-2 py-1 text-xs font-semibold rounded" [ngClass]="{
+                                'bg-red-100 text-red-800': task.priority === 'HIGH',
+                                'bg-yellow-100 text-yellow-800': task.priority === 'MEDIUM',
+                                'bg-green-100 text-green-800': task.priority === 'LOW'
+                            }">
+                                    {{ task.priority === 'HIGH' ? 'Alta' : task.priority === 'MEDIUM' ? 'Media' : 'Baja'
+                                    }}
+                                </span>
+                                }
+                            </div>
+                            <span class="px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap ml-2" [ngClass]="{
+                            'bg-green-100 text-green-800': task.status === 'COMPLETED',
+                            'bg-yellow-100 text-yellow-800': task.status === 'PENDING'
+                        }">
+                                {{ task.status === 'COMPLETED' ? 'Completada' : 'Pendiente' }}
+                            </span>
+                        </div>
+
+                        @if (task.completionDescription) {
+                        <div class="mb-3 p-3 bg-gray-50 rounded-lg">
+                            <p class="text-sm text-gray-700">{{ task.completionDescription }}</p>
+                            @if (task.completionNotes) {
+                            <p class="text-xs text-gray-500 mt-2">
+                                <strong>Notas:</strong> {{ task.completionNotes }}
+                            </p>
+                            }
+                        </div>
+                        }
+
+                        @if (task.evidenceUrls && task.evidenceUrls.length > 0) {
+                        <div class="mb-3">
+                            <p class="text-sm font-semibold text-gray-700 mb-2">
+                                Evidencias ({{ task.evidenceUrls.length }}):
+                            </p>
+                            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                @for (url of task.evidenceUrls; track url) {
+                                <img [src]="url" alt="Evidencia"
+                                    class="w-full h-20 object-cover rounded-lg border border-gray-200 cursor-pointer hover:scale-105 transition-transform"
+                                    (click)="viewImage(url)" />
+                                }
+                            </div>
+                        </div>
+                        }
+
+                        <div
+                            class="flex items-center justify-between text-sm text-gray-600 pt-3 border-t border-gray-100">
+                            <div>
+                                @if (task.completedByName) {
+                                <span>Completada por: <strong>{{ task.completedByName }}</strong></span>
+                                }
+                            </div>
+                            <div>
+                                @if (task.completedAt) {
+                                <span>{{ task.completedAt | date:'dd/MM/yyyy HH:mm' }}</span>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                    }
+                </div>
+            </div>
+            } @else {
+            <div class="bg-white rounded-xl shadow-lg p-12 text-center">
+                <fa-icon [icon]="getIcon('info-circle')" class="text-gray-300 text-6xl mb-4" />
+                <h3 class="text-xl font-semibold text-gray-700 mb-2">No hay tareas en este reporte</h3>
+                <p class="text-gray-500">Intenta con un rango de fechas diferente</p>
+            </div>
+            }
+        </div>
+        }
+
+        <!-- Estado inicial -->
+        @if (!report && !isLoading) {
+        <div class="bg-white rounded-xl shadow-lg p-12 text-center">
+            <fa-icon [icon]="getIcon('chart')" class="text-gray-300 text-6xl mb-4" />
+            <h3 class="text-xl font-semibold text-gray-700 mb-2">No hay reportes generados</h3>
+            <p class="text-gray-500 mb-6">Selecciona un rango de fechas y tipo de reporte para comenzar</p>
+            <button (click)="loadDashboard()"
+                class="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all font-semibold">
+                Cargar Dashboard (Últimos 30 días)
+            </button>
+        </div>
+        }
+    </div>
+</div>
+
+<!-- Modal de imagen -->
+@if (selectedImage) {
+<div class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4" (click)="closeImageModal()">
+    <div class="relative max-w-4xl max-h-[90vh]">
+        <button (click)="closeImageModal()"
+            class="absolute -top-4 -right-4 bg-white rounded-full p-2 shadow-lg hover:bg-gray-100 transition-colors">
+            <fa-icon [icon]="getIcon('times')" class="text-gray-700 text-xl" />
+        </button>
+        <img [src]="selectedImage" alt="Evidencia ampliada" class="max-w-full max-h-[90vh] rounded-lg shadow-2xl"
+            (click)="$event.stopPropagation()" />
+    </div>
+</div>
+}

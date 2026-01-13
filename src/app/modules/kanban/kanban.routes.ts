@@ -16,6 +16,10 @@ export default [
             {
                 path: 'profile',
                 loadComponent: () => import('./pages/profile/profile').then(m => m.ProfileComponent)
+            },
+            {
+                path: 'report',
+                loadComponent: () => import('./pages/report-viewer/report-viewer').then(m => m.ReportViewerComponent)
             }
         ]
     }

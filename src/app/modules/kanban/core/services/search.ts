@@ -11,6 +11,7 @@ export class SearchService {
 
     openSearchModal() {
         this._isSearchModalOpen.next(true);
+        console.log(this._isSearchModalOpen)
     }
 
     closeSearchModal() {

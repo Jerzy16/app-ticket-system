@@ -6,10 +6,11 @@ import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { FormError } from "../../../../shared/components/form-error/form-error";
 import { Router, RouterLink } from "@angular/router";
 import { toast } from 'ngx-sonner';
+import { CommonModule } from '@angular/common';
 
 @Component({
     selector: 'app-login-form',
-    imports: [FontAwesomeModule, ReactiveFormsModule, FormError, RouterLink],
+    imports: [FontAwesomeModule, ReactiveFormsModule, FormError, RouterLink, CommonModule],
     templateUrl: './login-form.html',
     styleUrl: './login-form.css',
 })
@@ -22,6 +23,7 @@ export class LoginFormComponent {
 
     loginForm!: FormGroup;
     isOpenPassword: boolean = false;
+    isLoading: boolean = false;
 
     ngOnInit() {
         this.loginForm = this.fb.group({
@@ -47,16 +49,17 @@ export class LoginFormComponent {
 
         const { email, password, rememberMe } = this.loginForm.value;
 
+        this.isLoading = true;
+
         this.authService.login(email, password, rememberMe).subscribe({
             next: () => {
-                // Ahora login() ya llamó a fetchUser() automáticamente
                 toast.success('¡Inicio de sesión exitoso!');
                 this.router.navigate(['/kanban']);
+                this.isLoading = false;
             },
             error: (err) => {
                 console.log('Error en login:', err);
 
-                // Manejar diferentes tipos de errores
                 let errorMessage = 'Error en el inicio de sesión';
 
                 if (err.status === 401) {
@@ -70,6 +73,7 @@ export class LoginFormComponent {
                 }
 
                 toast.error(errorMessage);
+                this.isLoading = false;
             }
         });
     }

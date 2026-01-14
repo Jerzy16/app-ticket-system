@@ -3,13 +3,16 @@ import {
     faArrowDown,
     faArrowLeft,
     faArrowRight,
+    faArrowsAlt,
     faArrowUp,
     faBars,
     faBell,
+    faBellSlash,
     faCalendar,
     faCamera,
     faChartLine,
     faCheck,
+    faCheckCircle,
     faChevronDown,
     faChevronRight,
     faCircle,
@@ -17,6 +20,7 @@ import {
     faCircleNotch,
     faClock,
     faClose,
+    faComment,
     faDotCircle,
     faEdit,
     faEnvelope,
@@ -47,6 +51,7 @@ import {
     faTrash,
     faUpload,
     faUser,
+    faUserPlus,
     faUsers,
     faUsersGear,
     faWarning,
@@ -109,7 +114,12 @@ export class IconService {
         image: faImage,
         warning: faWarning,
         trash: faTrash,
-        camera: faCamera
+        camera: faCamera,
+        'user-plus': faUserPlus,
+        'arrows-alt': faArrowsAlt,
+        comment: faComment,
+        'bell-slash': faBellSlash,
+        'check-circle': faCheckCircle
     };
 
     getIcon(name: string): IconDefinition {

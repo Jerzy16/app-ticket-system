@@ -1,15 +1,94 @@
-<div class="absolute inset-0 z-50 flex items-start justify-center pt-4">
-  <div class="bg-white p-6 rounded-lg shadow-xl w-[90%] max-w-md relative">
-    <input
-      type="text"
-      class="outline-none w-full border border-gray-300 rounded px-4 py-2"
-      placeholder="Buscar tareas, personas, etc."
-    />
-    <div>
-        <fa-icon
-            [icon]="getIcon('close')" class="text-gray-600 absolute top-1 right-1 cursor-pointer"
-            (click)="closeSearch()"
+<div class="absolute inset-0 z-50 flex items-start justify-center pt-4 bg-black/20" (click)="closeSearch()">
+  <div class="bg-white rounded-lg shadow-xl w-[90%] max-w-2xl relative" (click)="$event.stopPropagation()">
+    <!-- Header con búsqueda -->
+    <div class="p-4 border-b border-gray-200">
+      <div class="relative">
+        <fa-icon [icon]="getIcon('search')" class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+        <input
+          type="text"
+          [(ngModel)]="searchQuery"
+          (input)="onSearchChange()"
+          class="outline-none w-full border border-gray-300 rounded pl-10 pr-10 py-2.5 focus:border-blue-500 transition-colors"
+          placeholder="Buscar tareas por título, descripción, persona o tablero..."
+          autofocus
         />
+        <button (click)="closeSearch()" class="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 hover:bg-gray-100 rounded transition-colors">
+          <fa-icon [icon]="getIcon('close')" class="text-gray-600" />
+        </button>
+      </div>
     </div>
+
+    <!-- Resultados -->
+    <div class="max-h-96 overflow-y-auto">
+      @if (isLoading) {
+        <div class="flex justify-center items-center py-12">
+          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+        </div>
+      } @else if (searchQuery && filteredTasks.length === 0) {
+        <div class="text-center py-12 text-gray-500">
+          <fa-icon [icon]="getIcon('search')" class="text-4xl mb-3 text-gray-300" />
+          <p class="text-sm">No se encontraron tareas</p>
+          <p class="text-xs text-gray-400 mt-1">Intenta con otros términos de búsqueda</p>
+        </div>
+      } @else if (!searchQuery) {
+        <div class="text-center py-12 text-gray-500">
+          <fa-icon [icon]="getIcon('search')" class="text-4xl mb-3 text-gray-300" />
+          <p class="text-sm">Escribe para buscar tareas</p>
+          <p class="text-xs text-gray-400 mt-1">Puedes buscar por título, descripción, persona o tablero</p>
+        </div>
+      } @else {
+        <div class="divide-y divide-gray-100">
+          @for (task of filteredTasks; track task.id) {
+            <div (click)="selectTask(task)"
+                 class="p-4 hover:bg-gray-50 cursor-pointer transition-colors">
+              <div class="flex items-start justify-between gap-3">
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-2 mb-1">
+                    <h4 class="font-medium text-sm text-gray-900 truncate">{{ task.title }}</h4>
+                    <span class="text-xs px-2 py-0.5 rounded shrink-0" [ngClass]="getPriorityColor(task.priority)">
+                      {{ getPriorityLabel(task.priority) }}
+                    </span>
+                  </div>
+
+                  <p class="text-xs text-gray-600 line-clamp-2 mb-2">{{ task.description }}</p>
+
+                  <div class="flex items-center gap-3 flex-wrap">
+                    @if (task.title) {
+                      <div class="flex items-center gap-1 text-xs text-gray-500">
+                        <fa-icon [icon]="getIcon('clipboard')" class="text-xs" />
+                        <span>{{ task.title }}</span>
+                      </div>
+                    }
+
+                    @if (task.assignedUsers && task.assignedUsers.length > 0) {
+                      <div class="flex items-center gap-1 text-xs text-gray-500">
+                        <fa-icon [icon]="getIcon('user')" class="text-xs" />
+                        <span>{{ task.assignedUsers.length }} asignado(s)</span>
+                      </div>
+                    }
+
+                    @if (task.dueDate) {
+                      <div class="flex items-center gap-1 text-xs text-gray-500">
+                        <fa-icon [icon]="getIcon('calendar')" class="text-xs" />
+                        <span>{{ task.dueDate | date:'dd/MM/yyyy' }}</span>
+                      </div>
+                    }
+                  </div>
+                </div>
+
+                <fa-icon [icon]="getIcon('arrow-right')" class="text-gray-400 text-sm shrink-0 mt-1" />
+              </div>
+            </div>
+          }
+        </div>
+      }
+    </div>
+
+    <!-- Footer con contador -->
+    @if (searchQuery && filteredTasks.length > 0) {
+      <div class="px-4 py-2 border-t border-gray-200 bg-gray-50 text-xs text-gray-600 text-center">
+        {{ filteredTasks.length }} {{ filteredTasks.length === 1 ? 'tarea encontrada' : 'tareas encontradas' }}
+      </div>
+    }
   </div>
 </div>

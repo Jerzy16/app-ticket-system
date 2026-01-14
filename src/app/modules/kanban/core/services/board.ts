@@ -101,10 +101,6 @@ export class BoardService {
             this.boardsSubject.next(updatedBoards);
         }
     }
-
-    /**
-     * ✅ ACTUALIZADO: Ahora usa TaskService para hacer la petición al backend
-     */
     moveTask(taskId: string, fromBoardId: string, toBoardId: string, toIndex: number): void {
         const boards = this.boardsSubject.value;
         const fromBoardIndex = boards.findIndex(b => b.id === fromBoardId);
@@ -112,7 +108,6 @@ export class BoardService {
 
         if (fromBoardIndex === -1 || toBoardIndex === -1) return;
 
-        // Actualizar localmente primero (optimistic update)
         const updatedBoards = [...boards];
         const fromTasks = [...(updatedBoards[fromBoardIndex].tasks || [])];
         const toTasks = fromBoardId === toBoardId

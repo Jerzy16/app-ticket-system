@@ -5,29 +5,32 @@
             class="text-gray-600 ml-4 cursor-pointer hover:text-secondary transition-colors" (click)="openSearch()" />
     </div>
 
-    <div class="flex">
-        <button class="py-2 cursor-pointer text-sm px-4 rounded-l-lg transition-colors"
-            [class.bg-secondary]="isActive('/kanban')" [class.text-white]="isActive('/kanban')"
-            [class.bg-gray-200]="!isActive('/kanban')" [class.text-gray-600]="!isActive('/kanban')"
-            (click)="navigate('/kanban')">
-            <fa-icon [icon]="getIcon('check')" />
-            Tareas
-        </button>
-        <button class="py-2 cursor-pointer text-sm px-4 border-l border-gray-300 transition-colors"
-            [class.bg-secondary]="isActive('/kanban/staff')" [class.text-white]="isActive('/kanban/staff')"
-            [class.bg-gray-200]="!isActive('/kanban/staff')" [class.text-gray-600]="!isActive('/kanban/staff')"
-            (click)="navigate('/kanban/staff')">
-            <fa-icon [icon]="getIcon('users-gear')" />
-            Personal
-        </button>
-        <button [class.bg-secondary]="isActive('/kanban/report')" [class.text-white]="isActive('/kanban/report')"
-            [class.bg-gray-200]="!isActive('/kanban/report')" [class.text-gray-600]="!isActive('/kanban/report')"
-            class="py-2 text-sm px-4 bg-gray-200 rounded-r-lg border-l border-gray-300 hover:bg-gray-300 transition-colors"
-            (click)="navigate('/kanban/report')">
-            <fa-icon [icon]="getIcon('chart-line')" class="text-gray-600" />
-            Reportes
-        </button>
-    </div>
+    <!-- ✅ Solo visible para ADMIN y SUPERADMIN -->
+    @if (isAdminOrSuperAdmin()) {
+        <div class="flex">
+            <button class="py-2 cursor-pointer text-sm px-4 rounded-l-lg transition-colors"
+                [class.bg-secondary]="isActive('/kanban')" [class.text-white]="isActive('/kanban')"
+                [class.bg-gray-200]="!isActive('/kanban')" [class.text-gray-600]="!isActive('/kanban')"
+                (click)="navigate('/kanban')">
+                <fa-icon [icon]="getIcon('check')" />
+                Tareas
+            </button>
+            <button class="py-2 cursor-pointer text-sm px-4 border-l border-gray-300 transition-colors"
+                [class.bg-secondary]="isActive('/kanban/staff')" [class.text-white]="isActive('/kanban/staff')"
+                [class.bg-gray-200]="!isActive('/kanban/staff')" [class.text-gray-600]="!isActive('/kanban/staff')"
+                (click)="navigate('/kanban/staff')">
+                <fa-icon [icon]="getIcon('users-gear')" />
+                Personal
+            </button>
+            <button [class.bg-secondary]="isActive('/kanban/report')" [class.text-white]="isActive('/kanban/report')"
+                [class.bg-gray-200]="!isActive('/kanban/report')" [class.text-gray-600]="!isActive('/kanban/report')"
+                class="py-2 text-sm px-4 bg-gray-200 rounded-r-lg border-l border-gray-300 hover:bg-gray-300 transition-colors"
+                (click)="navigate('/kanban/report')">
+                <fa-icon [icon]="getIcon('chart-line')" class="text-gray-600" />
+                Reportes
+            </button>
+        </div>
+    }
 
     <div class="flex items-center gap-4">
         <div class="relative notifications-container">

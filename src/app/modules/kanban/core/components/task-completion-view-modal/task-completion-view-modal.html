@@ -1,0 +1,154 @@
+<div class="fixed inset-0 bg-black/20 flex items-end justify-end z-50" (click)="onBackdropClick($event)">
+  <div class="bg-white shadow-xl w-full max-w-2xl h-svh overflow-y-auto" (click)="$event.stopPropagation()">
+    <div class="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between z-10">
+      <div class="flex items-center gap-3 flex-1">
+        <fa-icon [icon]="getIcon('check-circle')" class="text-green-600 text-xl" />
+        <h2 class="text-xl font-semibold text-gray-800">
+          Tarea Completada
+        </h2>
+        <span [class]="'text-xs px-3 py-1 rounded-full ' + getPriorityClass(task.priority)">
+          {{ task.priority }}
+        </span>
+      </div>
+      <button
+        (click)="handleClose()"
+        class="text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+        type="button"
+      >
+        <fa-icon [icon]="getIcon('close')" class="text-xl" />
+      </button>
+    </div>
+
+    <div class="px-6 py-4 space-y-6">
+      <div class="bg-green-50 border-l-4 border-green-500 p-4 rounded-r-lg">
+        <div class="flex items-center gap-2">
+          <fa-icon [icon]="getIcon('check-circle')" class="text-green-600" />
+          <p class="text-sm font-medium text-green-800">
+            Esta tarea ha sido completada y no puede ser editada
+          </p>
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">
+          Título de la tarea
+        </label>
+        <div class="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-800">
+          {{ task.title }}
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">
+          Descripción
+        </label>
+        <div class="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-600 min-h-25">
+          {{ task.description || 'Sin descripción' }}
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">
+          Nivel de prioridad
+        </label>
+        <div class="flex items-center gap-2">
+          <span [class]="'px-4 py-2 rounded-lg text-sm font-medium ' + getPriorityClass(task.priority)">
+            <fa-icon
+              [icon]="task.priority === 'high' ? getIcon('arrow-up') : task.priority === 'low' ? getIcon('arrow-down') : getIcon('minus')"
+              class="mr-2"
+            />
+            {{ task.priority === 'high' ? 'Alta' : task.priority === 'medium' ? 'Media' : 'Baja' }}
+          </span>
+        </div>
+      </div>
+
+      @if (task.dueDate) {
+      <div>
+        <label class="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+          <fa-icon [icon]="getIcon('calendar')" />
+          Fecha de vencimiento
+        </label>
+        <div class="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-800">
+          {{ task.dueDate | date:'dd/MM/yyyy' }}
+        </div>
+      </div>
+      }
+
+      <div>
+        <label class="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+          <fa-icon [icon]="getIcon('user')" />
+          Asignado a
+        </label>
+        @if (task.assignedUsers && task.assignedUsers.length > 0) {
+          <div class="space-y-2">
+            @for (person of task.assignedUsers; track person.id) {
+              <div class="flex items-center gap-3 p-3 bg-gray-50 border border-gray-200 rounded-lg">
+                <img [src]="person.photo" [alt]="person.name" class="w-10 h-10 rounded-full object-cover" />
+                <div class="flex-1">
+                  <p class="text-sm font-medium text-gray-800">{{ person.name }}</p>
+                  <p class="text-xs text-gray-500">{{ person.position }}</p>
+                </div>
+              </div>
+            }
+          </div>
+        } @else {
+          <p class="text-sm text-gray-500 italic px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg">
+            Sin asignar
+          </p>
+        }
+      </div>
+
+      @if (task.latitude && task.longitude) {
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">
+          <fa-icon [icon]="getIcon('location')" class="mr-1" />
+          Ubicación de la tarea
+        </label>
+        <div class="space-y-3">
+          <div id="taskCompletionViewMap" class="w-full h-64 rounded-lg border border-gray-300 overflow-hidden"></div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-medium text-gray-600 mb-1">
+                Latitud
+              </label>
+              <div class="w-full px-3 py-2 text-sm bg-gray-50 border border-gray-200 rounded-lg text-gray-800">
+                {{ task.latitude | number:'1.6-6' }}
+              </div>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-600 mb-1">
+                Longitud
+              </label>
+              <div class="w-full px-3 py-2 text-sm bg-gray-50 border border-gray-200 rounded-lg text-gray-800">
+                {{ task.longitude | number:'1.6-6' }}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      }
+
+      @if (task.createdAt) {
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">
+          <fa-icon [icon]="getIcon('clock')" class="mr-1" />
+          Fecha de creación
+        </label>
+        <div class="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-800">
+          {{ task.createdAt | date:'dd/MM/yyyy HH:mm' }}
+        </div>
+      </div>
+      }
+    </div>
+
+    <div class="sticky bottom-0 bg-gray-50 border-t border-gray-200 px-6 py-4 flex items-center justify-end">
+      <button
+        type="button"
+        (click)="handleClose()"
+        class="px-6 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors font-medium cursor-pointer"
+      >
+        Cerrar
+      </button>
+    </div>
+  </div>
+</div>

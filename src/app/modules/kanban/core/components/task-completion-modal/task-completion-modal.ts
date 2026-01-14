@@ -21,7 +21,7 @@ export interface TaskCompletionData {
 })
 export class TaskCompletionModal {
     @Input() taskId!: string;
-    @Input() boardId?: string; // ⚠️ FALTABA ESTE INPUT
+    @Input() boardId?: string;
     @Input() taskTitle!: string;
     @Input() taskDescription!: string;
     @Output() complete = new EventEmitter<TaskCompletionData>();
@@ -29,14 +29,13 @@ export class TaskCompletionModal {
 
     completionService = inject(TaskCompletionService);
 
-    // ⚠️ CAMBIÉ A PROPIEDADES INDIVIDUALES en lugar de un objeto
     description = '';
     notes = '';
     images: File[] = [];
 
     imagePreviews: Array<{ url: string; size: string }> = [];
     showValidationError = false;
-    isSubmitting = false; // ⚠️ FALTABA ESTA PROPIEDAD
+    isSubmitting = false;
 
     constructor(private iconService: IconService) { }
 
@@ -46,7 +45,7 @@ export class TaskCompletionModal {
             const newFiles = Array.from(input.files);
 
             newFiles.forEach(file => {
-                this.images.push(file); // ⚠️ CORREGIDO
+                this.images.push(file);
 
                 const reader = new FileReader();
                 reader.onload = (e) => {
@@ -62,7 +61,7 @@ export class TaskCompletionModal {
     }
 
     removeImage(index: number) {
-        this.images.splice(index, 1); // ⚠️ CORREGIDO
+        this.images.splice(index, 1);
         this.imagePreviews.splice(index, 1);
     }
 
@@ -85,7 +84,7 @@ export class TaskCompletionModal {
             this.boardId as string,
             this.description,
             this.images,
-            this.notes || undefined // Convertir string vacío a undefined
+            this.notes || undefined
         ).subscribe({
             next: (completion) => {
                 console.log('✅ Completación creada:', completion);

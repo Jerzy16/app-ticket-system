@@ -2,7 +2,7 @@
 <div class="fixed inset-0 bg-white z-50 flex items-center justify-center text-white">
     <img src="/assets/img/logo.png" alt="" class="w-20 h-20 animate-expand">
 </div>
-}@else {
+} @else {
 <div class="flex flex-nowrap gap-4 px-4 pt-4 pb-0 max-w-svw overflow-x-auto relative bg-gray-50 h-[calc(100vh-3.5rem)]">
     <app-board-container title="Equipo">
         @if (isLoadingTeam) {
@@ -21,17 +21,12 @@
         }
         }
     </app-board-container>
-    @if (isLoadingBoards) {
-    <div class="flex justify-center items-center py-16 min-w-80">
-        <div class="text-center">
-            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-            <p class="text-gray-600">Cargando tableros...</p>
-        </div>
-    </div>
-    }
+
     @for (board of boards; track board.id) {
     <app-board-container [title]="board.title">
-        <div cdkDropList [id]="board.id" [cdkDropListData]="board.tasks" [cdkDropListConnectedTo]="getBoardIds()"
+        <div cdkDropList [id]="board.id" [cdkDropListData]="board.tasks"
+            [cdkDropListConnectedTo]="isCompletedBoard(board.id) ? [] : getBoardIds()"
+            [cdkDropListDisabled]="isCompletedBoard(board.id)"
             (cdkDropListDropped)="onTaskDrop($event, board.id)" class="flex-1 space-y-2 min-h-25">
             @if (board.tasks.length === 0) {
             <div class="text-center py-8 text-gray-400 border-2 border-dashed border-gray-200 rounded-lg">
@@ -39,8 +34,13 @@
             </div>
             }
             @for (task of board.tasks; track task.id) {
-            <div cdkDrag (click)="onTaskClick(task)"
-                class="bg-white p-3 rounded border border-gray-200 cursor-move hover:shadow-md transition-shadow">
+            <div cdkDrag [cdkDragDisabled]="isCompletedBoard(board.id)"
+                [cdkDragDisabled]="isCompletedBoard(board.id)"
+                (click)="onTaskClick(task, board.id)"
+                [class.cursor-move]="!isCompletedBoard(board.id)"
+                [class.cursor-default]="isCompletedBoard(board.id)"
+                [class.opacity-75]="isCompletedBoard(board.id)"
+                class="bg-white p-3 rounded border border-gray-200 hover:shadow-md transition-shadow">
                 <div class="flex items-start justify-between mb-2">
                     <h4 class="font-medium text-sm">{{ task.title }}</h4>
                     <span class="text-xs px-2 py-1 rounded" [class.bg-red-100]="task.priority === 'high'"
@@ -56,9 +56,10 @@
                 <div class="flex items-center gap-1 mb-2">
                     <fa-icon [icon]="getIcon('user')" class="text-gray-400 text-xs" />
                     <div class="flex flex-wrap gap-1">
-                        @for (person of task.assignedUsers; track person) {
+                        @for (person of task.assignedUsers; track person.id) {
                         <span class="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">
-                            {{ person.name }} {{ person.lastName}}
+                            {{ person.name || person.username || 'Sin nombre' }} {{ person.position ? '(' +
+                            person.position + ')' : '' }}
                         </span>
                         }
                     </div>
@@ -77,45 +78,56 @@
                         <span>{{ task.latitude | number:'1.4-4' }}, {{ task.longitude | number:'1.4-4' }}</span>
                     </div>
                     }
+                    @if (isCompletedBoard(board.id)) {
+                    <div class="flex items-center gap-1 text-xs text-green-600 font-medium">
+                        <fa-icon [icon]="getIcon('check')" class="text-xs" />
+                        <span>Completada</span>
+                    </div>
+                    }
                 </div>
             </div>
             }
         </div>
+        @if (!isCompletedBoard(board.id)) {
         <button (click)="openTaskModal(board.id)"
             class="border border-dashed text-gray-600 hover:text-gray-800 leading-none py-2 rounded hover:bg-gray-50 transition-colors"
             title="Agregar tarea">
             <fa-icon [icon]="getIcon('plus')" />
             <span class="ml-1 text-sm">Agregar tarea</span>
         </button>
+        }
     </app-board-container>
     }
+
     <button (click)="addNewBoard()"
         class="min-w-80 h-32 bg-white/50 border-2 border-dashed border-gray-300 rounded-lg hover:bg-white hover:border-gray-400 transition-colors flex items-center justify-center text-gray-500 hover:text-gray-700">
         <fa-icon [icon]="getIcon('plus')" />
         <span class="ml-2">Agregar tablero</span>
     </button>
-    @if(isOpen) {
-    <app-search />
-    }
     @if(showTaskModal && currentBoardId) {
     <app-task-modal [allTeamMembers]="allTeamMembers" [boardId]="currentBoardId" (save)="onTaskSave($event)"
         (cancel)="closeTaskModal()" />
     }
 </div>
 
-@if(showTaskDetailModal && selectedTaskForCompletion) {
-<app-task-detail-modal [task]="selectedTaskForCompletion" [allTeamMembers]="allTeamMembers" (save)="onTaskDetailSave($event)"
-    (cancel)="closeTaskDetailModal()" />
+@if(isOpen$ | async) {
+<app-search (taskSelected)="onSearchTaskSelected($event)" />
+}
+
+@if(showTaskDetailModal && selectedTaskForCompletion && !isTaskFromCompletedBoard) {
+<app-task-detail-modal [task]="selectedTaskForCompletion" [allTeamMembers]="allTeamMembers"
+    (save)="onTaskDetailSave($event)" (cancel)="closeTaskDetailModal()" />
+}
+
+@if(showTaskDetailModal && selectedTaskForCompletion && isTaskFromCompletedBoard) {
+<app-task-completion-view-modal [task]="selectedTaskForCompletion" [allTeamMembers]="allTeamMembers"
+    (close)="closeTaskDetailModal()" />
 }
 
 @if(showCompletionModal && selectedTaskForCompletion) {
-<app-task-completion-modal
-  [taskId]="selectedTaskForCompletion.id"
-  [boardId]="selectedTaskForCompletion.boardId"
-  [taskTitle]="selectedTaskForCompletion.title"
-  [taskDescription]="selectedTaskForCompletion.description"
-  (complete)="onTaskComplete($event)"
-  (cancel)="closeCompletionModal()">
+<app-task-completion-modal [taskId]="selectedTaskForCompletion.id" [boardId]="selectedTaskForCompletion.boardId"
+    [taskTitle]="selectedTaskForCompletion.title" [taskDescription]="selectedTaskForCompletion.description"
+    (complete)="onTaskComplete($event)" (cancel)="closeCompletionModal()">
 </app-task-completion-modal>
 }
 }

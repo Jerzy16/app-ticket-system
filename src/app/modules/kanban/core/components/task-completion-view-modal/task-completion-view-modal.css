@@ -1,0 +1,29 @@
+#taskCompletionViewMap {
+    z-index: 1;
+    height: 16rem;
+    width: 100%;
+    position: relative;
+}
+
+:host ::ng-deep .leaflet-container {
+    height: 100% !important;
+    width: 100% !important;
+    border-radius: 0.5rem;
+}
+
+:host ::ng-deep .leaflet-tile-container {
+    pointer-events: auto;
+}
+
+:host ::ng-deep .leaflet-control-zoom {
+    border: 2px solid rgba(0,0,0,0.2);
+    border-radius: 4px;
+}
+
+:host ::ng-deep .leaflet-popup-content-wrapper {
+    border-radius: 8px;
+}
+
+:host ::ng-deep .leaflet-popup-content {
+    margin: 10px;
+}

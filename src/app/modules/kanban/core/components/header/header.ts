@@ -1,3 +1,4 @@
+// header.component.ts
 import { Component, HostListener, inject, OnInit, OnDestroy } from '@angular/core';
 import { LogoComponent } from "../../../../../shared/components/logo/logo";
 import { IconService } from '../../../../../shared/data-access/icon';
@@ -36,7 +37,6 @@ export class HeaderComponent implements OnInit, OnDestroy {
 
     ngOnInit() {
         this.loadCurrentUser();
-
         window.addEventListener('userUpdated', this.handleUserUpdate.bind(this));
     }
 
@@ -56,7 +56,6 @@ export class HeaderComponent implements OnInit, OnDestroy {
         this.destroy$.next();
         this.destroy$.complete();
         this.notificationWS.disconnect();
-
         window.removeEventListener('userUpdated', this.handleUserUpdate.bind(this));
     }
 
@@ -91,6 +90,23 @@ export class HeaderComponent implements OnInit, OnDestroy {
                 error: (error) => {
                 }
             });
+    }
+
+    // ✅ NUEVO: Método para verificar si el usuario es Admin o SuperAdmin
+    isAdminOrSuperAdmin(): boolean {
+        if (!this.currentUser || !this.currentUser.roles) {
+            return false;
+        }
+        return this.currentUser.roles.includes('ADMIN') ||
+               this.currentUser.roles.includes('SUPERADMIN');
+    }
+
+    // ✅ NUEVO: Método para verificar si tiene un rol específico
+    hasRole(role: string): boolean {
+        if (!this.currentUser || !this.currentUser.roles) {
+            return false;
+        }
+        return this.currentUser.roles.includes(role);
     }
 
     getIcon(icon: string) {

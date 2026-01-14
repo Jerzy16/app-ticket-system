@@ -30,6 +30,13 @@ export class TaskDetailModalComponent implements OnInit, AfterViewInit, OnDestro
     selectedMembers: string[] = [];
     private selectedMemberIds: string[] = [];
 
+    // Getter para obtener los detalles completos de los miembros seleccionados
+    get selectedMembersWithDetails(): TeamMember[] {
+        return this.selectedMembers
+            .map(name => this.allTeamMembers.find(m => m.name === name))
+            .filter((member): member is TeamMember => member !== undefined);
+    }
+
     ngOnInit() {
         this.initForm();
         this.initSelectedMembers();
@@ -69,15 +76,32 @@ export class TaskDetailModalComponent implements OnInit, AfterViewInit, OnDestro
 
     initSelectedMembers() {
         if (this.task.assignedTo && this.task.assignedTo.length > 0) {
-            this.selectedMembers = [...this.task.assignedTo];
+            // Detectar si assignedTo contiene IDs (UUID) o nombres
+            const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-            // Encontrar los IDs correspondientes
-            this.selectedMemberIds = this.task.assignedTo
-                .map(name => {
-                    const member = this.allTeamMembers.find(m => m.name === name);
-                    return member ? member.id : null;
-                })
-                .filter((id): id is string => id !== null);
+            // Si el primer elemento es un UUID, son IDs
+            if (uuidRegex.test(this.task.assignedTo[0])) {
+                // Convertir IDs a nombres
+                this.selectedMembers = this.task.assignedTo
+                    .map(userId => {
+                        const member = this.allTeamMembers.find(m => m.id === userId);
+                        return member ? member.name : null;
+                    })
+                    .filter((name): name is string => name !== null);
+
+                this.selectedMemberIds = [...this.task.assignedTo];
+            } else {
+                // Ya son nombres, usarlos directamente
+                this.selectedMembers = [...this.task.assignedTo];
+
+                // Encontrar los IDs correspondientes
+                this.selectedMemberIds = this.task.assignedTo
+                    .map(name => {
+                        const member = this.allTeamMembers.find(m => m.name === name);
+                        return member ? member.id : null;
+                    })
+                    .filter((id): id is string => id !== null);
+            }
         }
     }
 
@@ -218,12 +242,20 @@ export class TaskDetailModalComponent implements OnInit, AfterViewInit, OnDestro
             formattedDate = new Date(`${formValue.dueDate}T00:00:00`);
         }
 
+        // IMPORTANTE: Convertir nombres a IDs antes de guardar
+        const assignedToIds = this.selectedMembers
+            .map(name => {
+                const member = this.allTeamMembers.find(m => m.name === name);
+                return member ? member.id : null;
+            })
+            .filter((id): id is string => id !== null);
+
         const updatedTask: Task = {
             ...this.task,
             title: formValue.title.trim(),
             description: formValue.description?.trim() || '',
             priority: formValue.priority,
-            assignedTo: this.selectedMembers,
+            assignedTo: assignedToIds,  // Enviar IDs, no nombres
             dueDate: formattedDate,
             latitude: formValue.latitude || null,
             longitude: formValue.longitude || null

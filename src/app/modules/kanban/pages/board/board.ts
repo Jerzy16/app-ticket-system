@@ -188,6 +188,15 @@ export class BoardComponent implements OnInit, OnDestroy {
         }
     }
 
+    getBoardIds(): string[] {
+        // Devolver TODOS los boards (incluyendo completados)
+        // El control de drop se maneja en onTaskDrop
+        return this.boards
+            .map(b => b.id)
+            .filter((id): id is string => id !== undefined);
+
+    }
+
     listenToBoardUpdates() {
         this.boardUpdatesSub = this.webSocketService.getBoardUpdates().subscribe({
             next: (update: BoardUpdate | null) => {
@@ -303,18 +312,12 @@ export class BoardComponent implements OnInit, OnDestroy {
         this.webSocketService.disconnect();
     }
 
-    getBoardIds(): string[] {
-        // Excluir el tablero de completados de la lista de destinos
-        return this.boards
-            .map(b => b.id)
-            .filter((id): id is string => id !== undefined && id !== this.COMPLETED_BOARD_ID);
-    }
-
     onTaskDrop(event: CdkDragDrop<Task[]>, boardId: string) {
-        // Prevenir drop en el tablero de completados si no viene del modal
-        if (this.isCompletedBoard(boardId) && !this.showCompletionModal) {
-            return;
-        }
+        console.log('🎯 DROP EVENT:', {
+            boardId,
+            completedBoardId: this.COMPLETED_BOARD_ID,
+            isCompleted: this.isCompletedBoard(boardId)
+        });
 
         if (event.previousContainer === event.container) {
             moveItemInArray(event.container.data, event.previousIndex, event.currentIndex);
@@ -328,7 +331,9 @@ export class BoardComponent implements OnInit, OnDestroy {
                 return;
             }
 
-            if (boardId === this.COMPLETED_BOARD_ID) {
+            // Si el destino es el tablero de completados, mostrar modal
+            if (this.isCompletedBoard(boardId)) {
+                console.log('✅ Abriendo modal de completación');
                 this.selectedTaskForCompletion = task;
                 this.showCompletionModal = true;
                 this.pendingTaskMove = {
@@ -343,7 +348,6 @@ export class BoardComponent implements OnInit, OnDestroy {
             }
         }
     }
-
     onTaskComplete(completionData: TaskCompletionData) {
         if (!this.selectedTaskForCompletion || !this.pendingTaskMove) return;
 

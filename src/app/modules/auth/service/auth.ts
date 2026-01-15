@@ -1,17 +1,9 @@
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
+import { Router } from '@angular/router';
 import { environment } from '../../../../environments/environment';
-import { catchError, map, Observable, switchMap, tap, throwError } from 'rxjs';
+import { BehaviorSubject, catchError, map, Observable, switchMap, tap, throwError, of } from 'rxjs';
 import { ApiResponse } from '../../../shared/interfaces/api-response.interface';
-
-export interface LoginData {
-    token: string;
-}
-
-export interface LoginData {
-    token: string;
-    user: User;
-}
 
 export interface LoginResponse {
     token: string;
@@ -37,7 +29,11 @@ export class AuthService {
     private readonly USER_KEY = 'auth_user';
 
     private http = inject(HttpClient);
+    private router = inject(Router);
     private apiUrl = environment.api_url;
+
+    private isAuthenticatedSubject = new BehaviorSubject<boolean>(this.hasValidToken());
+    public isAuthenticated$ = this.isAuthenticatedSubject.asObservable();
 
     login(email: string, password: string, rememberMe: boolean): Observable<void> {
         return this.http
@@ -52,9 +48,8 @@ export class AuthService {
                         this.setToken(res.data.token);
                     }
                 }),
-                // Cambiar a switchMap para encadenar la siguiente llamada
                 switchMap(() => this.fetchUser()),
-                // Mapear a void ya que fetchUser ya maneja el almacenamiento
+                tap(() => this.isAuthenticatedSubject.next(true)),
                 map(() => void 0),
                 catchError((error: HttpErrorResponse) => {
                     console.error('Login error:', error);
@@ -69,18 +64,46 @@ export class AuthService {
                 tap(res => {
                     if (res.data) {
                         this.setUser(res.data);
-                        console.log("Este es el usuario" + this.setUser)
+                        console.log("Usuario cargado:", res.data);
                     }
                 }),
                 catchError((error: HttpErrorResponse) => {
                     console.error('Error fetching user:', error);
-                    // Opcional: limpiar token si es error 401
-                    if (error.status === 401) {
-                        this.logout();
+                    if (error.status === 401 || error.status === 403) {
+                        this.handleSessionExpired();
                     }
                     return throwError(() => error);
                 })
             );
+    }
+
+    validateToken(): Observable<boolean> {
+        if (!this.getToken()) {
+            return of(false);
+        }
+
+        return this.http.get<ApiResponse<User>>(`${this.apiUrl}/auth/me`)
+            .pipe(
+                map(res => {
+                    if (res.data) {
+                        this.setUser(res.data);
+                        this.isAuthenticatedSubject.next(true);
+                        return true;
+                    }
+                    return false;
+                }),
+                catchError(() => {
+                    this.handleSessionExpired();
+                    return of(false);
+                })
+            );
+    }
+
+    handleSessionExpired(): void {
+        this.logout();
+        this.router.navigate(['/'], {
+            queryParams: { sessionExpired: 'true' }
+        });
     }
 
     setToken(token: string): void {
@@ -99,14 +122,19 @@ export class AuthService {
     logout(): void {
         localStorage.removeItem(this.TOKEN_KEY);
         localStorage.removeItem(this.USER_KEY);
+        this.isAuthenticatedSubject.next(false);
     }
 
     isAuthenticated(): boolean {
-        return !!this.getToken();
+        return this.hasValidToken();
     }
 
     getToken(): string | null {
         return localStorage.getItem(this.TOKEN_KEY);
     }
 
+    private hasValidToken(): boolean {
+        const token = this.getToken();
+        return !!token;
+    }
 }
